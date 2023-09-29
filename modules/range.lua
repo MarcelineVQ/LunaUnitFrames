@@ -197,14 +197,12 @@ function Range:GetRange(UnitID)
 			return 10
 		elseif CheckInteractDistance(UnitID, 4) then
 			return 30
-		elseif (instance == "none" or instance == "pvp") and not WorldMapFrame:IsVisible() then
+		elseif (instance == "none" or instance == "pvp") and MapFileName and MapSizes[MapFileName] and not WorldMapFrame:IsVisible() then
 			local px, py, ux, uy, distance
 			SetMapToCurrentZone()
 			px, py = GetPlayerMapPosition("player")
 			ux, uy = GetPlayerMapPosition(UnitID)
-			if MapFileName and MapSizes[MapFileName] then
-				distance = sqrt(((px - ux)*MapSizes[MapFileName].x)^2 + ((py - uy)*MapSizes[MapFileName].y)^2)*(40/42.9)
-			end
+			distance = sqrt(((px - ux)*MapSizes[MapFileName].x)^2 + ((py - uy)*MapSizes[MapFileName].y)^2)*(40/42.9)
 			return distance
 		elseif (GetTime() - (roster[UnitID] or 0)) < 4 then
 			return 40
@@ -318,14 +316,14 @@ function Range:FullUpdate(frame)
 
 	local healththreshold = LunaUF.db.profile.units.raid.healththreshold
 	if (not healththreshold.enabled) then
-		if range <= 40 then
+		if range and range <= 40 then
 			frame:SetAlpha(LunaUF.db.profile.units[frame.unitGroup].fader.enabled and LunaUF.db.profile.units[frame.unitGroup].fader.combatAlpha or 1)
 		else
 			frame:SetAlpha(LunaUF.db.profile.units[frame.unitGroup].range.alpha)
 		end
 	else -- TODO Remove dependency on the Range module for healththreshold.
 		local percent = UnitHealth(frame.unit) / UnitHealthMax(frame.unit)
-		if (range <= 40) then
+		if (range and range <= 40) then
 			if (percent <= healththreshold.threshold) then				
 				frame:SetAlpha(healththreshold.inRangeBelowAlpha)
 			else
