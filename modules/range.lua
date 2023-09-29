@@ -203,7 +203,7 @@ function Range:GetRange(UnitID)
 			px, py = GetPlayerMapPosition("player")
 			ux, uy = GetPlayerMapPosition(UnitID)
 			if MapFileName and MapSizes[MapFileName] then
-				distance = sqrt(((px - ux)*MapSizes[MapFileName].x)^2 + ((py - uy)*MapSizes[MapFileName].y)^2)
+				distance = sqrt(((px - ux)*MapSizes[MapFileName].x)^2 + ((py - uy)*MapSizes[MapFileName].y)^2)*(40/42.9)
 			end
 			return distance
 		elseif (GetTime() - (roster[UnitID] or 0)) < 4 then
