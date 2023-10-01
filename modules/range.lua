@@ -260,7 +260,7 @@ local function OnUpdate()
 end
 
 local function OnEvent()
-	if event == "ZONE_CHANGED_NEW_AREA" or not event then
+	if event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_ENTERING_WORLD" or not event then
 		SetMapToCurrentZone()
 		MapFileName, _, _ = GetMapInfo()
 	elseif LunaUF.db.profile.RangeCLparsing and events[event] then
@@ -271,6 +271,7 @@ end
 OnEvent()
 ZoneWatch:SetScript("OnEvent", OnEvent)
 ZoneWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+ZoneWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
 for i in pairs(events) do ZoneWatch:RegisterEvent(i) end
 
 function Range:GetRange(UnitID)
@@ -283,12 +284,14 @@ function Range:GetRange(UnitID)
 			return 10
 		elseif CheckInteractDistance(UnitID, 4) then
 			return 30
-		elseif (instance == "none" or instance == "pvp") and MapFileName and MapSizes[MapFileName] and not WorldMapFrame:IsVisible() then
+		elseif MapFileName and MapSizes[MapFileName] and not WorldMapFrame:IsVisible() then
 			local px, py, ux, uy, distance
 			SetMapToCurrentZone()
 			px, py = GetPlayerMapPosition("player")
 			ux, uy = GetPlayerMapPosition(UnitID)
-			distance = sqrt(((px - ux)*MapSizes[MapFileName].x)^2 + ((py - uy)*MapSizes[MapFileName].y)^2)*(40/42.9)
+			if px ~= 0 and ux ~= 0 then
+				distance = sqrt(((px - ux)*MapSizes[MapFileName].x)^2 + ((py - uy)*MapSizes[MapFileName].y)^2)*(40/42.9)
+			end
 			return distance
 		elseif (GetTime() - (roster[UnitID] or 0)) < 4 then
 			return 40
