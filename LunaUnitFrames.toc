@@ -28,7 +28,6 @@ libs\AceEvent-2.0\AceEvent-2.0.lua
 libs\AceLocale-2.2\AceLocale-2.2.lua
 
 libs\Babble-Spell-2.2\Babble-Spell-2.2.lua
-libs\Babble-Zone-2.2\Babble-Zone-2.2.lua
 libs\Dewdrop-2.0\Dewdrop-2.0.lua
 libs\Tablet-2.0\Tablet-2.0.lua
 libs\FuBarPlugin-2.0\FuBarPlugin-2.0.lua
