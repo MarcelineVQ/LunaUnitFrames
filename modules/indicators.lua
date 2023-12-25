@@ -63,7 +63,7 @@ local function UpdatePVP(enabled, indicator, unit)
 			indicator:Show()
 		elseif UnitIsPVP(unit) or not LunaUF.db.profile.locked then
 			local _,race = UnitRace(unit)
-			indicator:SetTexture((UnitFactionGroup(unit) == "Alliance" or LunaUF.AllianceCheck[race]) and "Interface\\TargetingFrame\\UI-PVP-Alliance" or "Interface\\TargetingFrame\\UI-PVP-Horde")
+			indicator:SetTexture((UnitFactionGroup(unit) == "Alliance" or LunaUF.AllianceCheck[race]) and "Interface\\TargetingFrame\\UI-PVP-Alliance" or (UnitFactionGroup(unit) == "Horde" and "Interface\\TargetingFrame\\UI-PVP-Horde") or nil)
 			indicator:Show()
 		else
 			indicator:Hide()
