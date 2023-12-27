@@ -19,6 +19,8 @@ LunaUF.AllianceCheck = {
 	["Human"] = true,
 	["Gnome"] = true,
 	["NightElf"] = true,
+	["High Elf"] = true,
+	["BloodElf"] = true,
 }
 
 local function BarGetMinMaxValues(self)
