@@ -1,12 +1,7 @@
 # LunaUnitFrames
-Unit Frames for WoW 1.12.1
+Unit Frames for Turtle WoW
+---
 
+* SuperWoW enabled for accurate mob cast times.  
 
-Feel free to fork this but give credit (at least author & link to this github)
-
-DO NOT REUPLOAD! LINK HERE INSTEAD.
-
-
-paypal.me/LunaUnitFrames
-
-Donations are non-refundable / don't entitle you to anything
+* Originally sourced from https://github.com/gnwl/LunaUnitFrames and https://github.com/Aviana/LunaUnitFrames

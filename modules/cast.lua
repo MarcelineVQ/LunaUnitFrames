@@ -5,6 +5,8 @@ local BS = LunaUF.BS
 local CL = LunaUF.CL
 LunaUF:RegisterModule(Cast, "castBar", L["Cast bar"], true)
 
+local has_superwow = SetAutoloot and true or false
+
 local CasterDB = {}
 local berserkValue = 0
 local buffed = false
@@ -80,6 +82,7 @@ local Spells = {
 	[L["Corrosive Acid"]] = {2};
 	[L["Dominate Mind"]] = {2};
 	[L["Demon Portal"]] = {0.5};
+	[BS["Frost Breath"]] = {t=7};
 	
 
 		-- First Aid
@@ -382,50 +385,58 @@ local function TriggerCastStop(mob, spell)
 	end
 end
 
-local function ProcessData(mob, spell, special)
-	local castime
-	if (Raids[mob] and Raids[spell]) or (Raids[spell] and not Spells[spell]) then
-		if special ~= "hit" then
-			castime = Raids[spell].t
-			-- Spell might have the same name but a different cast time on another mob, ie. Onyxia/Nefarian on Bellowing Roar
-			if Raids[spell].r then
-				if (mob == Raids[spell].r) then
-					castime = Raids[spell].a
-				end
-			end
+local function ProcessData(mob, spell, special, maybe_castime)
+	local castime = maybe_castime
+	if has_superwow then
+		if special == "CAST" or special == "FAIL" then
+			TriggerCastStop(mob, spell)
+		elseif special == "START" then
 			TriggerCast(mob, spell, castime)
-		elseif Interrupts[spell] then
-			if CasterDB[mob] and CasterDB[mob].ct and CasterDB[mob].ct > 0 then
-				TriggerCastStop(mob, spell)
-				return
-			end
 		end
 	else
-		if Spells[spell] and special ~= "hit" then
-			if special == "afflicted" then
-				if not NonAfflictions[spell] then
+		if (Raids[mob] and Raids[spell]) or (Raids[spell] and not Spells[spell]) then
+			if special ~= "hit" then
+				castime = Raids[spell].t
+				-- Spell might have the same name but a different cast time on another mob, ie. Onyxia/Nefarian on Bellowing Roar
+				if Raids[spell].r then
+					if (mob == Raids[spell].r) then
+						castime = Raids[spell].a
+					end
+				end
+				TriggerCast(mob, spell, castime)
+			elseif Interrupts[spell] then
+				if CasterDB[mob] and CasterDB[mob].ct and CasterDB[mob].ct > 0 then
 					TriggerCastStop(mob, spell)
-				end
-				return
-			end
-			castime = Spells[spell].t
-			if special == "gains" then
-				if not NonAfflictions[spell] then
-					TriggerCastStop(mob, spell)
-				end
-				return
-			end
-			-- Spell might have the same name but a different cast time on another mob, ie. Death Talon Hatchers/Players on Bellowing Roar
-			if Spells[spell].r then
-				if mob == Spells[spell].r then
-					castime = Spells[spell].a
+					return
 				end
 			end
-			TriggerCast(mob, spell, castime)
-		elseif Interrupts[mob] then -- for these, the two things are parsed in reverse order
-			if CasterDB[spell] and CasterDB[spell].ct and CasterDB[spell].ct > 0 then
-				TriggerCastStop(spell, mob)
-				return
+		else
+			if Spells[spell] and special ~= "hit" then
+				if special == "afflicted" then
+					if not NonAfflictions[spell] then
+						TriggerCastStop(mob, spell)
+					end
+					return
+				end
+				castime = Spells[spell].t
+				if special == "gains" then
+					if not NonAfflictions[spell] then
+						TriggerCastStop(mob, spell)
+					end
+					return
+				end
+				-- Spell might have the same name but a different cast time on another mob, ie. Death Talon Hatchers/Players on Bellowing Roar
+				if Spells[spell].r then
+					if mob == Spells[spell].r then
+						castime = Spells[spell].a
+					end
+				end
+				TriggerCast(mob, spell, castime)
+			elseif Interrupts[mob] then -- for these, the two things are parsed in reverse order
+				if CasterDB[spell] and CasterDB[spell].ct and CasterDB[spell].ct > 0 then
+					TriggerCastStop(spell, mob)
+					return
+				end
 			end
 		end
 	end
@@ -443,8 +454,15 @@ end
 Cast.CHAT_MSG_SPELL_PERIODIC_FRIENDLYPLAYER_BUFFS = Cast.CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_BUFFS
 Cast.CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS = Cast.CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_BUFFS
 
+function Cast:UNIT_CASTEVENT(caster,target,action,spell_id,cast_time)
+	local name = UnitName(caster)
+	if name == UnitName("player") or action == "MAINHAND" or action == "OFFHAND" then return end
+	-- print(UnitName(caster).." "..SpellInfo(spell_id).." "..action)
+	ProcessData(name, SpellInfo(spell_id), action, cast_time / 1000)
+end
+
 function Cast:CHAT_MSG_SPELL_HOSTILEPLAYER_BUFF(arg1)
-	if LunaUF.db.profile.enemyCastbars then return end
+	if LunaUF.db.profile.enemyCastbars or has_superwow then return end
 	-- casts/performs
 	for _, pattern in pairs(CHAT_PATTERNS["casts"]) do
 		for mob, spell in string.gfind(arg1, pattern) do
@@ -937,5 +955,8 @@ Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS")
 Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_SELF_BUFF")
 Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_PARTY_BUFF")
 Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_CREATURE_BUFF")
+if has_superwow then
+	Cast:RegisterEvent("UNIT_CASTEVENT")
+end
 Cast:MINIMAP_ZONE_CHANGED()
-Cast:SetScript("OnEvent", function() this[event](this, arg1) end)
+Cast:SetScript("OnEvent", function() this[event](this,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) end)
