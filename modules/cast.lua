@@ -387,10 +387,10 @@ end
 
 local function ProcessData(mob, spell, special, maybe_castime)
 	local castime = maybe_castime
-	if has_superwow then
+	if has_superwow and spell then
 		if special == "CAST" or special == "FAIL" then
 			TriggerCastStop(mob, spell)
-		elseif special == "START" then
+		elseif special == "START" or special == "CHANNEL" then
 			TriggerCast(mob, spell, castime)
 		end
 	else
