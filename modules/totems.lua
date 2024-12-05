@@ -7,6 +7,10 @@ local SpellCast = {}
 local isCasting
 LunaUF:RegisterModule(Totems, "totemBar", L["Totem Bar"], true)
 
+local has_superwow = SetAutoloot and true or false
+
+local player_guid = nil
+
 local totemcolors = {
 	{1,0,0},
 	{0,0,1},
@@ -160,15 +164,50 @@ local TotemDB = {
 }
 
 local function OnEvent()
-	if (event == "UNIT_HEALTH" and arg1 == "player" and UnitHealth("player") == 0) or event == "PLAYER_ENTERING_WORLD" then
+	if event == "PLAYER_ENTERING_WORLD" then
+		_,player_guid = UnitExists("player")
+
 		for k,totem in pairs(this.totems) do
 			totem.active = nil
 			totem.timer = 0
 		end
+		Totems:FullUpdate(this:GetParent())
+	elseif not has_superwow and (event == "UNIT_HEALTH" and arg1 == "player" and UnitHealth("player") == 0) then
+		for k,totem in pairs(this.totems) do
+			totem.active = nil
+			totem.timer = 0
+			totem:SetValue(0)
+		end
 		SpellCast[1] = nil
 		SpellCast[2] = nil
 		Totems:FullUpdate(this:GetParent())
-	else
+	elseif event == "UNIT_CASTEVENT" then
+		-- print(arg1 .. " "..arg2.." "..(arg3 or "x"))
+		if arg1 ~= player_guid or arg3 ~= "CAST" then return end
+
+		-- recall
+		if arg4 == 45513 then
+			for k,totem in pairs(this.totems) do
+				totem.active = nil
+				totem.timer = 0
+				totem:SetValue(0)
+			end
+			Totems:FullUpdate(this:GetParent())
+		end
+
+		local spell_name,spell_rank_str = SpellInfo(arg4)
+		if TotemDB[spell_name] then
+			local totem = this.totems[TotemDB[spell_name]["type"]]
+			local dur = TotemDB[spell_name]["dur"]
+			local _,_,rank = string.find(spell_rank_str,"Rank (%d+)")
+
+			dur = dur[tonumber(rank)] or dur[1]
+			totem.timer = dur + 0.5 -- why + 0.5?
+			totem:SetMinMaxValues(0,dur)
+			totem.active = true
+			Totems:FullUpdate(this:GetParent())
+		end
+	elseif not has_superwow then
 		isCasting = false
 		if SpellCast and TotemDB[SpellCast[1]] then
 			local totem = this.totems[TotemDB[SpellCast[1]]["type"]]
@@ -218,67 +257,70 @@ local function ProcessSpellCast(spellName, rank)
 	end
 end
 
-local oldCastSpell = CastSpell
-local function newCastSpell(spellId, spellbookTabNum)
-	local gcd = gcdCheck()
-	-- Call the original function so there's no delay while we process
-	oldCastSpell(spellId, spellbookTabNum)
-	if gcd then return end
-	local spellName, rank = GetSpellName(spellId, spellbookTabNum)
-	_,_,rank = string.find(rank,"(%d+)")
-	ProcessSpellCast(spellName, rank or 1)
-end
-CastSpell = newCastSpell
+-- no sense hooking if we use CASTEVENT
+if not has_superwow then
+	local oldCastSpell = CastSpell
+	local function newCastSpell(spellId, spellbookTabNum)
+		local gcd = gcdCheck()
+		-- Call the original function so there's no delay while we process
+		oldCastSpell(spellId, spellbookTabNum)
+		if gcd then return end
+		local spellName, rank = GetSpellName(spellId, spellbookTabNum)
+		_,_,rank = string.find(rank,"(%d+)")
+		ProcessSpellCast(spellName, rank or 1)
+	end
+	CastSpell = newCastSpell
 
-local oldCastSpellByName = CastSpellByName
-local function newCastSpellByName(spellName, onSelf)
-	local gcd = gcdCheck()
-	-- Call the original function
-	oldCastSpellByName(spellName, onSelf)
-	if gcd then return end
-	local _,_,rank = string.find(spellName,"(%d+)")
-	local _, _, spellName = string.find(spellName, "^([^%(]+)")
-	if not rank then
-		local i = 1
-		while GetSpellName(i, BOOKTYPE_SPELL) do
-			local s, r = GetSpellName(i, BOOKTYPE_SPELL)
-			if s == spellName then
-				rank = r
+	local oldCastSpellByName = CastSpellByName
+	local function newCastSpellByName(spellName, onSelf)
+		local gcd = gcdCheck()
+		-- Call the original function
+		oldCastSpellByName(spellName, onSelf)
+		if gcd then return end
+		local _,_,rank = string.find(spellName,"(%d+)")
+		local _, _, spellName = string.find(spellName, "^([^%(]+)")
+		if not rank then
+			local i = 1
+			while GetSpellName(i, BOOKTYPE_SPELL) do
+				local s, r = GetSpellName(i, BOOKTYPE_SPELL)
+				if s == spellName then
+					rank = r
+				end
+				i = i+1
 			end
-			i = i+1
+			if rank then
+				_,_,rank = string.find(rank,"(%d+)")
+			end
 		end
+		if (spellName) then
+			ProcessSpellCast(spellName, rank)
+		end
+	end
+	CastSpellByName = newCastSpellByName
+
+	local oldUseAction = UseAction
+	local function newUseAction(a1, a2, a3)
+		local gcd = gcdCheck()
+		tooltip:ClearLines()
+		tooltip:SetAction(a1)
+		local spellName = LunaScanTipTextLeft1:GetText()
+		-- Call the original function
+		oldUseAction(a1, a2, a3)
+		if gcd then return end
+		-- Test to see if this is a macro
+		if ( GetActionText(a1) or not spellName ) then
+			return
+		end
+		local rank = LunaScanTipTextRight1:GetText()
 		if rank then
 			_,_,rank = string.find(rank,"(%d+)")
+		else
+			rank = 1
 		end
-	end
-	if (spellName) then
 		ProcessSpellCast(spellName, rank)
 	end
+	UseAction = newUseAction
 end
-CastSpellByName = newCastSpellByName
-
-local oldUseAction = UseAction
-local function newUseAction(a1, a2, a3)
-	local gcd = gcdCheck()
-	tooltip:ClearLines()
-	tooltip:SetAction(a1)
-	local spellName = LunaScanTipTextLeft1:GetText()
-	-- Call the original function
-	oldUseAction(a1, a2, a3)
-	if gcd then return end
-	-- Test to see if this is a macro
-	if ( GetActionText(a1) or not spellName ) then
-		return
-	end
-	local rank = LunaScanTipTextRight1:GetText()
-	if rank then
-		_,_,rank = string.find(rank,"(%d+)")
-	else
-		rank = 1
-	end
-	ProcessSpellCast(spellName, rank)
-end
-UseAction = newUseAction
 
 function Totems:OnEnable(frame)
 	if playerclass ~= "SHAMAN" then return end
@@ -297,8 +339,12 @@ function Totems:OnEnable(frame)
 	end
 	frame.totemBar:SetScript("OnUpdate", OnUpdate)
 	frame.totemBar:SetScript("OnEvent", OnEvent)
-	frame.totemBar:RegisterEvent("SPELLCAST_STOP")
-	frame.totemBar:RegisterEvent("UNIT_HEALTH")
+	if has_superwow then
+		frame.totemBar:RegisterEvent("UNIT_CASTEVENT")
+	else
+		frame.totemBar:RegisterEvent("SPELLCAST_STOP")
+		frame.totemBar:RegisterEvent("UNIT_HEALTH")
+	end
 	frame.totemBar:RegisterEvent("PLAYER_ENTERING_WORLD")
 end
 
@@ -323,6 +369,7 @@ function Totems:FullUpdate(frame)
 		frame.totemBar.totems[i]:SetWidth(totemWidth)
 		if frame.totemBar.totems[i].active then
 			active = true
+			break
 		end
 	end
 	if LunaUF.db.profile.units[frame.unitGroup].totemBar.hide then

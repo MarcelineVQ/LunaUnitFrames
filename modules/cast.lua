@@ -457,7 +457,6 @@ Cast.CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS = Cast.CHAT_MSG_SPELL_PERIODIC_HOSTILEP
 function Cast:UNIT_CASTEVENT(caster,target,action,spell_id,cast_time)
 	local name = UnitName(caster)
 	if name == UnitName("player") or action == "MAINHAND" or action == "OFFHAND" then return end
-	-- print(UnitName(caster).." "..SpellInfo(spell_id).." "..action)
 	ProcessData(name, SpellInfo(spell_id), action, cast_time / 1000)
 end
 
