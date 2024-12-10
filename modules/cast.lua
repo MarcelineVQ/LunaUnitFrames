@@ -366,8 +366,12 @@ local function TriggerCast(mob, spell, castime)
 		CasterDB[mob] = {sp = spell, start = GetTime(), ct = castime}
 	end
 	for _,frame in pairs(LunaUF.Units.frameList) do
-		if frame.unit and frame.castBar and LunaUF.db.profile.units[frame.unitGroup].castBar.enabled and mob == UnitName(frame.unit) then
-			Cast:FullUpdate(frame)
+		if frame.unit and frame.castBar and LunaUF.db.profile.units[frame.unitGroup].castBar.enabled then
+			if has_superwow then
+				if UnitExists(mob) and UnitIsUnit(frame.unit,mob) then Cast:FullUpdate(frame) end
+			elseif mob == UnitName(frame.unit) then
+				Cast:FullUpdate(frame)
+			end
 		end
 	end
 end
@@ -455,9 +459,9 @@ Cast.CHAT_MSG_SPELL_PERIODIC_FRIENDLYPLAYER_BUFFS = Cast.CHAT_MSG_SPELL_PERIODIC
 Cast.CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS = Cast.CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_BUFFS
 
 function Cast:UNIT_CASTEVENT(caster,target,action,spell_id,cast_time)
-	local name = UnitName(caster)
-	if name == UnitName("player") or action == "MAINHAND" or action == "OFFHAND" then return end
-	ProcessData(name, SpellInfo(spell_id), action, cast_time / 1000)
+	-- local name = UnitName(caster)
+	if UnitName(caster) == UnitName("player") or action == "MAINHAND" or action == "OFFHAND" then return end
+	ProcessData(caster, SpellInfo(spell_id), action, cast_time / 1000)
 end
 
 function Cast:CHAT_MSG_SPELL_HOSTILEPLAYER_BUFF(arg1)
@@ -881,6 +885,9 @@ function Cast:FullUpdate(frame)
 				end
 			end
 		else
+			if has_superwow then
+				_,unitname = UnitExists(frame.unit)
+			end
 			frame.castBar:SetScript("OnEvent", nil)
 			if CasterDB[unitname] and CasterDB[unitname].ct and (CasterDB[unitname].start + CasterDB[unitname].ct) > GetTime() then
 				frame.castBar.bar:SetMinMaxValues(0, CasterDB[unitname].ct)

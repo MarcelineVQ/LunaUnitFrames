@@ -509,34 +509,39 @@ end
 --Profile Changer---------------------------------------------------------------------------
 function LunaUF:ProfileSwitcher()
 	if (not LunaDB.ProfileSwitcher) or (event == "PARTY_MEMBERS_CHANGED" and UnitInRaid("player")) then return end
-	local GrpMode = 0
-	local _,currentProfile = LunaUF:GetProfile()
-	if UnitInRaid("player") then
-		for i=1,8 do
-			if (getn(RAID_SUBGROUP_LISTS[i]) or 0) > 0 then
-				GrpMode = i
+	if LunaUF.profile_switcher_event and LunaUF:IsEventScheduled(LunaUF.profile_switcher_event) then return end
+	function do_switcher()
+		if (not LunaDB.ProfileSwitcher) or (event == "PARTY_MEMBERS_CHANGED" and UnitInRaid("player")) then return end
+		local GrpMode = 0
+		local _,currentProfile = LunaUF:GetProfile()
+		if UnitInRaid("player") then
+			for i=1,8 do
+				if (getn(RAID_SUBGROUP_LISTS[i]) or 0) > 0 then
+					GrpMode = i
+				end
+			end
+			if GrpMode == 1 then
+				GrpMode = "5man"
+			elseif GrpMode == 2 then
+				GrpMode = "10man"
+			elseif GrpMode <= 4 then
+				GrpMode = "20man"
+			else
+				GrpMode = "40man"
+			end
+		else
+			if GetNumPartyMembers() > 0 then
+				GrpMode = "Party"
+			else
+				GrpMode = "Solo"
 			end
 		end
-		if GrpMode == 1 then
-			GrpMode = "5man"
-		elseif GrpMode == 2 then
-			GrpMode = "10man"
-		elseif GrpMode <= 4 then
-			GrpMode = "20man"
-		else
-			GrpMode = "40man"
-		end
-	else
-		if GetNumPartyMembers() > 0 then
-			GrpMode = "Party"
-		else
-			GrpMode = "Solo"
-		end
+		local profile = LunaDB.ProfileSwitcherData[GrpMode] or "Default"
+		UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[14].ProfileSelect, profile)
+		LunaUF:SystemMessage(L["Switched to Profile: "]..profile)
+		LunaUF:SetProfile(profile)
 	end
-	local profile = LunaDB.ProfileSwitcherData[GrpMode] or "Default"
-	UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[14].ProfileSelect, profile)
-	LunaUF:SystemMessage(L["Switched to Profile: "]..profile)
-	LunaUF:SetProfile(profile)
+	LunaUF.profile_switcher_event = LunaUF:ScheduleEvent(function () do_switcher() end, 0.3)
 end
 LunaUF:RegisterEvent("PARTY_MEMBERS_CHANGED", "ProfileSwitcher")
 LunaUF:RegisterEvent("RAID_ROSTER_UPDATE", "ProfileSwitcher")
