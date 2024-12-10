@@ -489,6 +489,15 @@ function LunaUF:OnInitialize()
 	----------------------------------------------------------------------------------------
 	
 	self:RegisterDefaults("profile", self.defaults.profile)
+
+	-- special cases
+	if not self.db.profile.clickcasting.bindings then
+		self.db.profile.clickcasting.bindings = {
+			[L["LeftButton"]] = L["target"],
+			[L["RightButton"]] = L["menu"],
+		}
+	end
+
 	self:InitBarorder()
 	self:HideBlizzard()
 	self:LoadUnits()

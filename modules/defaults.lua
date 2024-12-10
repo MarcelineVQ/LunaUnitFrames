@@ -125,11 +125,6 @@ LunaUF.defaults = {
 		},
 		clickcasting = {
 			mouseDownClicks = false,
-			bindings = {
-				[L["LeftButton"]] = L["target"],
-				[L["RightButton"]] = L["menu"],
-			},
-
 		},
 		units = {
 			player = {
