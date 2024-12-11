@@ -4,7 +4,7 @@ local Units = {headerFrames = {}, unitFrames = {}, frameList = {}, childframeLis
 local unitFrames, headerFrames, frameList, childframeList = Units.unitFrames, Units.headerFrames, Units.frameList, Units.childframeList
 local UnitWatch = CreateFrame("Frame")
 UnitWatch.time = 0
-local RaidRoster = {}
+-- local RaidRoster = {}
 local GroupRoster = {}
 local RaidPetRoster = {}
 local PartyPetRoster = {}
@@ -352,9 +352,8 @@ end
 
 local function SetupGroupHeader(groupType)
 	local unitGroup = groupType or this.unitGroup
-	if LunaUF.unit_update_event[unitGroup] and LunaUF:IsEventScheduled(LunaUF.unit_update_event[unitGroup]) then return end
 
-	local function do_setup(groupType)
+	local function do_setup(unitGroup)
 		local config = LunaUF.db.profile.units.party
 		local header = headerFrames[unitGroup]
 		if UnitInRaid("player") and not config.inraid then
@@ -467,23 +466,21 @@ local function SetupGroupHeader(groupType)
 				anchor = frame
 			end
 		end
+		LunaUF.unit_update_event[unitGroup] = nil
 	end
 
-	LunaUF.unit_update_event[unitGroup] = LunaUF:ScheduleEvent(function () do_setup(unitGroup) end, 0.5)
+	if LunaUF.unit_update_event[unitGroup] and LunaUF:IsEventScheduled(LunaUF.unit_update_event[unitGroup]) then
+		return
+	end
+
+	LunaUF.unit_update_event[unitGroup] = LunaUF:ScheduleEvent(function () do_setup(unitGroup) end, 0.3)
 end
 
 local function SetupRaidHeader(passedHeader)
 	local header = passedHeader or this
-	if LunaUF.unit_update_raid_event[header] and LunaUF:IsEventScheduled(LunaUF.unit_update_raid_event[header]) then return end
 
-	local function do_setup(passedHeader)
-		local header = passedHeader
+	local function do_setup(header)
 		local config = LunaUF.db.profile.units.raid
-		-- if passedHeader then
-			-- header = passedHeader
-		-- else
-			-- header = this
-		-- end
 		local point = LunaUF.constants.AnchorPoint[config.growth]
 		local framesneeded = 0
 		if header.id == 9 then
@@ -509,9 +506,12 @@ local function SetupRaidHeader(passedHeader)
 		end
 
 		--Generate RaidGroup Table
-		while getn(RaidRoster) > 0 do
-			table.remove(RaidRoster)
-		end
+		-- while getn(RaidRoster) > 0 do
+			-- table.remove(RaidRoster)
+		-- end
+		-- ^ why?
+		local RaidRoster = {}
+
 		if header.id == 9 and framesneeded > 0 then
 			if UnitInRaid("player") then
 				for unitid,_ in pairs(RaidPetRoster) do
@@ -614,9 +614,14 @@ local function SetupRaidHeader(passedHeader)
 				anchor = frame
 			end
 		end
+		LunaUF.unit_update_raid_event[header.id] = nil
 	end
 
-	LunaUF.unit_update_raid_event[header] = LunaUF:ScheduleEvent(function () do_setup(header) end, 0.5)
+	if LunaUF.unit_update_raid_event[header.id] and LunaUF:IsEventScheduled(LunaUF.unit_update_raid_event[header.id]) then
+		return
+	end
+
+	LunaUF.unit_update_raid_event[header.id] = LunaUF:ScheduleEvent(function () do_setup(header) end, 0.3)
 end
 
 -- Create the generic things that we want in every frame regardless if it's a button or a header

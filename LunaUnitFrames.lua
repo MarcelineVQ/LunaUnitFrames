@@ -520,7 +520,6 @@ function LunaUF:ProfileSwitcher()
 	if (not LunaDB.ProfileSwitcher) or (event == "PARTY_MEMBERS_CHANGED" and UnitInRaid("player")) then return end
 	if LunaUF.profile_switcher_event and LunaUF:IsEventScheduled(LunaUF.profile_switcher_event) then return end
 	function do_switcher()
-		if (not LunaDB.ProfileSwitcher) or (event == "PARTY_MEMBERS_CHANGED" and UnitInRaid("player")) then return end
 		local GrpMode = 0
 		local _,currentProfile = LunaUF:GetProfile()
 		if UnitInRaid("player") then
@@ -549,6 +548,8 @@ function LunaUF:ProfileSwitcher()
 		UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[14].ProfileSelect, profile)
 		LunaUF:SystemMessage(L["Switched to Profile: "]..profile)
 		LunaUF:SetProfile(profile)
+
+		LunaUF.profile_switcher_event = nil
 	end
 	LunaUF.profile_switcher_event = LunaUF:ScheduleEvent(function () do_switcher() end, 0.3)
 end
