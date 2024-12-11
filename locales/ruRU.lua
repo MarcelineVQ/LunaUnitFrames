@@ -1,5 +1,5 @@
 local function ruRU() return {
---	["FONT_LIST"] = {"Aldrich","Bangers","Celestia","DorisPP","Enigmatic","FasterOne","Fitzgerald","Gentium","Iceland","Inconsolata","LiberationSans","Luna","MetalLord","Optimus","TradeWinds","VeraSerif","Yellowjacket"},
+--	["FONT_LIST"] = {"Aldrich","Bangers","Celestia","DorisPP","Enigmatic","Expressway","FasterOne","Fitzgerald","Gentium","Iceland","Inconsolata","LiberationSans","Luna","MetalLord","Optimus","TradeWinds","VeraSerif","Yellowjacket"},
 	["DEFAULT_FONT"] = "Celestia",
 	["Loaded. The ride never ends!"] = "Загружен. Поездка никогда не заканчивается!",
 	["Mobhealth2/Mobinfo2 found. Please consider MobHealth3 for a better experience."] = "Обнаружен MobHealth2/Mobinfo2. Пожалуйста, подумайте о MobHealth3 для лучшего опыта.",

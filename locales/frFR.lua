@@ -1,5 +1,5 @@
 local function frFR() return {
-["FONT_LIST"] = {"Aldrich","Bangers","Celestia","DorisPP","Enigmatic","FasterOne","Fitzgerald","Gentium","Iceland","Inconsolata","LiberationSans","Luna","MetalLord","Optimus","TradeWinds","VeraSerif","Yellowjacket"},
+["FONT_LIST"] = {"Aldrich","Bangers","Celestia","DorisPP","Enigmatic","Expressway","FasterOne","Fitzgerald","Gentium","Iceland","Inconsolata","LiberationSans","Luna","MetalLord","Optimus","TradeWinds","VeraSerif","Yellowjacket"},
 ["DEFAULT_FONT"]="Luna",
 ["Loaded. The ride never ends!"] = "Loaded. The ride never ends!",
 ["Mobhealth2/Mobinfo2 found. Please consider MobHealth3 for a better experience."] = "Mobhealth2/Mobinfo2 found. Please consider MobHealth3 for a better experience.",
