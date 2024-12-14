@@ -372,6 +372,7 @@ local function enUS() return {
 ["you"] = "you",
 ["You"] = "You",
 ["Enable Combatlog based Range"] = "Enable Combatlog based Range",
+["Enable Line of Sight check for Range"] = "Enable Line of Sight check for Range",
 ["Globally disable castbars of others"] = "Globally disable castbars of others",
 ["Combat alpha"] = "Combat alpha",
 ["Non combat alpha"] = "Non combat alpha",

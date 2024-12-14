@@ -11,6 +11,9 @@ local roster = {}
 local ZoneWatch = CreateFrame("Frame")
 local _, playerClass = UnitClass("player")
 
+local has_superwow = SetAutoloot and true or false
+local has_unitxp = pcall(UnitXP, "nop", "nop") and true or false
+
 -- Big thx to Renew & Astrolabe
 local MapSizes = {
 	["AhnQiraj"] = {x = 977.56, y = 651.707},
@@ -275,7 +278,7 @@ local function OnEvent()
 	if event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_ENTERING_WORLD" or not event then
 		SetMapToCurrentZone()
 		MapFileName, _, _ = GetMapInfo()
-	elseif LunaUF.db.profile.RangeCLparsing and events[event] then
+	elseif not (has_superwow or has_unitxp) and LunaUF.db.profile.RangeCLparsing and events[event] then
 		ParseCombatMessage(events[event], arg1)
 	end
 end
@@ -289,6 +292,18 @@ for i in pairs(events) do ZoneWatch:RegisterEvent(i) end
 function Range:GetRange(UnitID)
     if UnitExists(UnitID) and UnitIsVisible(UnitID) then
 		local _,instance = IsInInstance()
+
+		if has_unitxp then
+			local d = UnitXP("distanceBetween","player",UnitID)
+			if d <= 100 and LunaUF.db.profile.RangeLoS then
+				return UnitXP("inSight", "player", UnitID) and d or 100
+			end
+			return UnitXP("distanceBetween","player",UnitID)
+		elseif has_superwow and UnitCanAssist("player",UnitID) then
+			local px,py,pz = UnitPosition("player")
+			local ux,uy,uz = UnitPosition(UnitID)
+			return math.sqrt((ux-px)^2,(uy-py)^2,(uz-pz)^2)
+		end
 
 		if CheckInteractDistance(UnitID, 1) then
 			return 10
