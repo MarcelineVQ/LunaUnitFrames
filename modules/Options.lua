@@ -1423,7 +1423,7 @@ function LunaUF:CreateOptionsMenu()
 	LunaOptionsFrame.pages[page].rangelos:SetScript("OnClick", function()
 		LunaUF.db.profile.RangeLoS = not LunaUF.db.profile.RangeLoS
 	end)
-	getglobal("RangeLoSText"):SetText(L["Enable Line of Sight checking for Range"])
+	getglobal("RangeLoSText"):SetText(L["Enable Line of Sight check for Range"])
 
 	LunaOptionsFrame.pages[page].enemyCastbar = LunaOptionsFrame.pages[page]:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	LunaOptionsFrame.pages[page].enemyCastbar:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 20, -640)
