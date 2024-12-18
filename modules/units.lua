@@ -18,6 +18,8 @@ LunaUF.Units.UnitWatch = UnitWatch
 LunaUF.unit_update_event = {}
 LunaUF.unit_update_raid_event = {}
 
+local has_superwow = SetAutoloot and true or false
+
 -- Frame shown, do a full update
 local function FullUpdate(frame)
 	if Units.pauseUpdates and strsub(frame.unit,1,6) == "target" then return end
@@ -167,35 +169,27 @@ UnitWatch:SetScript("OnUpdate", UnitWatchOnUpdate)
 
 -- Show tooltip
 local function OnEnter()
-	if this.unit and LunaUF.db.profile.tooltips then
-		if not GameTooltip.orgSetUnit then
-			if ( SpellIsTargeting() ) then
-				if ( SpellCanTargetUnit(this.unit) ) then
-					SetCursor("CAST_CURSOR")
-				else
-					SetCursor("CAST_ERROR_CURSOR")
-				end
-			end
-			if( LunaUF.db.profile.tooltipCombat and UnitAffectingCombat("player") ) then return end
+	if this.unit then
+		if has_superwow and not SuperAPI_Load then
+			SetMouseoverUnit(this.unit)
+		end
+		UnitFrame_OnEnter()
+		if LunaUF.db.profile.tooltips and not (LunaUF.db.profile.tooltipCombat and UnitAffectingCombat("player")) then
 			GameTooltip_SetDefaultAnchor(GameTooltip, this)
 			GameTooltip:SetUnit(this.unit)
 			local r, g, b = GameTooltip_UnitColor(this.unit)
 			GameTooltipTextLeft1:SetTextColor(r, g, b)
 		else
-			UnitFrame_OnEnter()
+			GameTooltip:Hide()
 		end
 	end
 end
 
 local function OnLeave()
-	if not GameTooltip.orgSetUnit then
-		if ( SpellIsTargeting() ) then
-			SetCursor("CAST_ERROR_CURSOR")
-		end
-		GameTooltip:FadeOut()
-	else
-		UnitFrame_OnLeave()
+	if has_superwow and not SuperAPI_Load then
+		SetMouseoverUnit()
 	end
+	UnitFrame_OnLeave()
 end
 
 -- Event handling
