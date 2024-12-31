@@ -50,7 +50,8 @@ end
 
 function Threat:PLAYER_TARGET_CHANGED()
 	if UnitExists("target") and self:IsInteresting() then
-		self:wipe(self.threats)
+		-- self:wipe(self.threats)
+		self:StartListening()
 	end
 end
 
@@ -216,8 +217,14 @@ function Threat:GetThreat(unit,perc,neg)
 
 	if self.threats[name] then
 		return (perc and self.threats[name].perc)
-		  or (neg and (self.threats[name].threat * (1 / (self.threats[name].perc/100)) - self.threats[name].threat))
+			or (neg and (self.threats[name].threat * (1 / (self.threats[name].perc/100)) - self.threats[name].threat))
 			or self.threats[name].threat
+	elseif neg then
+		for _, data in self.threats do
+			if data.tank then
+				return data.threat
+			end
+		end
 	end
 	return 0 -- meets criteria but no value yet
 end
