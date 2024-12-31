@@ -49,7 +49,7 @@ function Threat:PLAYER_REGEN_ENABLED()
 end
 
 function Threat:PLAYER_TARGET_CHANGED()
-	if UnitExists("target") and not UnitIsPlayer("target") then
+	if UnitExists("target") and self:IsInteresting() then
 		self:wipe(self.threats)
 	end
 end
@@ -194,22 +194,30 @@ function Threat:GetPlayerInfo(playerName)
 	return self.threats[playerName]
 end
 
-function Threat:GetThreat(unit,perc)
-	-- non interesting target
-	if UnitClassification('target') ~= 'worldboss' and UnitClassification('target') ~= 'elite' then
-		return false
-	end
-	-- no raid or party
-	if GetNumRaidMembers() == 0 and GetNumPartyMembers() == 0 then
+function Threat:IsInteresting()
+		-- non interesting target
+		if UnitClassification('target') ~= 'worldboss' and UnitClassification('target') ~= 'elite' then
 			return false
-	end
-	-- not in combat
-	if not UnitAffectingCombat('target') then
-			return false
-	end
+		end
+		-- no raid or party
+		if GetNumRaidMembers() == 0 and GetNumPartyMembers() == 0 then
+				return false
+		end
+		-- not in combat
+		if not UnitAffectingCombat('target') then
+				return false
+		end
+		return true
+end
 
-	if self.threats[UnitName(unit)] then
-		return perc and self.threats[UnitName(unit)].perc or self.threats[UnitName(unit)].threat
+function Threat:GetThreat(unit,perc,neg)
+	local name = UnitName(unit)
+	if not self:IsInteresting() then return false end
+
+	if self.threats[name] then
+		return (perc and self.threats[name].perc)
+		  or (neg and (self.threats[name].threat * (1 / (self.threats[name].perc/100)) - self.threats[name].threat))
+			or self.threats[name].threat
 	end
 	return 0 -- meets criteria but no value yet
 end

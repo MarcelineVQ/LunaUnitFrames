@@ -669,11 +669,26 @@ local defaultTags = {
 						if threat then
 							local l
 							if threat >= 1000000 then
-								l = format("%0.5fM",threat/1000000)
+								l = format("%.5fM",threat/1000000)
 							elseif threat >= 1000 then
-								l = format("%0.2fK",threat/1000)
+								l = format("%.2fK",threat/1000)
 							else
-								l = format("%0.2f",threat)
+								l = format("%.2f",threat)
+							end
+							return l
+						end
+						return "";
+					end;
+	["pullthreat"]			= function(unit)
+						local threat = LunaUF.modules.threat:GetThreat("player",false,true)
+						if threat then
+							local l
+							if math.abs(threat) >= 1000000 then
+								l = format("%.5fM",threat/1000000)
+							elseif math.abs(threat) >= 1000 then
+								l = format("%.fK",threat/1000)
+							else
+								l = format("%.f",threat)
 							end
 							return l
 						end
@@ -683,9 +698,9 @@ local defaultTags = {
 						local threat = LunaUF.modules.threat:GetThreat("player",true)
 						if threat then
 							if threat >= 50 then
-								return Hex(1, 1 - (threat - 50) / 50, 0) .. format("%.1f",threat)
+								return Hex(1, 1 - (threat - 50) / 50, 0) .. format("%.f",threat) .. "|r"
 							else
-								return Hex(threat / 50,1,0) .. format("%.1f",threat)
+								return Hex(threat / 50,1,0) .. format("%.f",threat) .. "|r"
 							end
 						end
 						return "";

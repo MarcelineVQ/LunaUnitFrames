@@ -323,6 +323,7 @@ local function enUS() return {
 ["Loyalty level of your pet"] = "Loyalty level of your pet",
 ["Exact threat vs mob"] = "Exact threat vs mob",
 ["Percent of total threat vs mob"] = "Percent of total threat vs mob",
+["Threat remaining before you pull aggro"] = "Threat remaining before you pull aggro",
 ["The same as \"healerhealth\" but displays name on full health"] = "The same as \"healerhealth\" but displays name on full health",
 ["Returns the same as \"smart:healmishp\" on friendly units and hp/maxhp on enemies"] = "Returns the same as \"smart:healmishp\" on friendly units and hp/maxhp on enemies",
 ["Returns missing hp with healing factored in. Shows status when needed (\"Dead\", \"Offline\", \"Ghost\")"] = "Returns missing hp with healing factored in. Shows status when needed (\"Dead\", \"Offline\", \"Ghost\")",
