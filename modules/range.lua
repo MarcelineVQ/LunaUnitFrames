@@ -293,7 +293,7 @@ function Range:GetRange(UnitID)
     if UnitExists(UnitID) and UnitIsVisible(UnitID) then
 		local _,instance = IsInInstance()
 
-		if has_unitxp then
+		if has_unitxp and UnitIsVisible(UnitID) then
 			local d = UnitXP("distanceBetween","player",UnitID)
 			if d <= 100 and LunaUF.db.profile.RangeLoS then
 				return UnitXP("inSight", "player", UnitID) and d or 100

@@ -78,5 +78,6 @@ modules\squares.lua
 modules\reckstacks.lua
 modules\emptyBar.lua
 modules\borders.lua
+modules\threat.lua
 
 modules\options.lua

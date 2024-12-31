@@ -39,6 +39,8 @@ TagsDescs[L["INFO TAGS"]] = {
 	["group"] = L["Current subgroup of the raid"],
 	["combat"] = L["(c) when in combat"],
 	["loyalty"] = L["Loyalty level of your pet"],
+	["threat"] = L["Exact threat vs mob"],
+	["perthreat"] = L["Percent of total threat vs mob"],
 }
 TagsDescs[L["HEALTH AND POWER TAGS"]] = {
 	["namehealerhealth"] = L["The same as \"healerhealth\" but displays name on full health"],

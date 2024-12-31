@@ -664,6 +664,32 @@ local defaultTags = {
 									return ""
 								end
 							end;
+	["threat"]			= function(unit)
+						local threat = LunaUF.modules.threat:GetThreat("player",false)
+						if threat then
+							local l
+							if threat >= 1000000 then
+								l = format("%0.5fM",threat/1000000)
+							elseif threat >= 1000 then
+								l = format("%0.2fK",threat/1000)
+							else
+								l = format("%0.2f",threat)
+							end
+							return l
+						end
+						return "";
+					end;
+	["perthreat"]			= function(unit)
+						local threat = LunaUF.modules.threat:GetThreat("player",true)
+						if threat then
+							if threat >= 50 then
+								return Hex(1, 1 - (threat - 50) / 50, 0) .. format("%.1f",threat)
+							else
+								return Hex(threat / 50,1,0) .. format("%.1f",threat)
+							end
+						end
+						return "";
+					end;
 	["healerhealth"]		= function(unit)
 								if UnitIsGhost(unit) then
 									return L["Ghost"]
