@@ -20,20 +20,47 @@ local function reset()
 	end
 end
 
+local manaTicker = CreateFrame("Frame")
+manaTicker:RegisterEvent("UNIT_MANA") -- Fires when mana changes
+
+local lastMana = UnitMana("player")
+local lastManaTickTime = nil
+local manaTickInterval = 2.0
+
+manaTicker:SetScript("OnEvent", function(self, event)
+        local currentMana = UnitMana("player")
+        if currentMana > lastMana then
+            lastManaTickTime = GetTime()
+        end
+        lastMana = currentMana
+end)
+
 local EnergyUpdate = function()
 	local powerType = UnitPowerType("player")
 	local frame = this:GetParent()
 	local time = GetTime()
 	local Position = 0
+	
 	if powerType == 0 then
+		
 		if timestamp then
 			if (time - timestamp) >= 5 then
-				timestamp = nil
-				this:Hide()
+			
+				if UnitMana("player") == UnitManaMax("player") then
+					timestamp = nil
+					lastManaTickTime = nil
+					this:Hide()
+					return
+				elseif lastManaTickTime ~= nil then
+					-- 2sec mana ticker
+					Position = ((time - lastManaTickTime) / manaTickInterval)
+				end
 			else
+				-- 5sec rule
 				Position = ((time - timestamp) / 5)
 			end
 		end
+		
 	elseif powerType == 3 then
 		if (time - this.startTime) >= 2 then 		--Ticks happen every 2 sec
 			this.startTime = GetTime()
