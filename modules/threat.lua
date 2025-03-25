@@ -46,6 +46,7 @@ end
 
 function Threat:PLAYER_REGEN_ENABLED()
 	self:StopListening()
+	self:PLAYER_TARGET_CHANGED()
 end
 
 function Threat:PLAYER_TARGET_CHANGED()
@@ -211,22 +212,67 @@ function Threat:IsInteresting()
 		return true
 end
 
-function Threat:GetThreat(unit,perc,neg)
+function Threat:GetThreat(unit,perc,pull,neg)
 	local name = UnitName(unit)
 	if not self:IsInteresting() then return false end
 
-	if self.threats[name] then
-		return (perc and self.threats[name].perc)
-			or (neg and (self.threats[name].threat * (1 / (self.threats[name].perc/100)) - self.threats[name].threat))
-			or self.threats[name].threat
-	elseif neg then
-		for _, data in self.threats do
+	local function NextThreat(threat)
+		local nextLowestThreater = nil
+
+		for n, data in self.threats do
+			if data.threat < threat then
+				if not nextLowestThreater or data.threat > nextLowestThreater.threat then
+					nextLowestThreater = data
+				end
+			end
+		end
+
+		return nextLowestThreater
+	end
+
+	local function GetHighestThreat(tank)
+		local highestThreat = nil
+		local highestEntry = nil
+
+		for n, data in pairs(self.threats) do
+			if not highestEntry or (data.threat >= highestEntry.threat and data.threat ~= tank.threat) then
+				print(n .. " ".. data.threat)
+				-- highestThreat = data.threat
+				highestEntry = data
+			end
+		end
+
+		return highestEntry
+	end
+
+	local data = self.threats[name]
+	if data then
+		if perc then
+			if neg and data.perc >= 100 then
+				local next_threater = NextThreat(data.threat) or data
+				-- local next_threater =	GetHighestThreat(data.tank and data)
+				return data.perc / next_threater.perc * 100
+			end
+			return data.perc
+		end
+		if pull then
+			if data.tank and neg then
+				local next_threater = NextThreat(data.threat) or data
+				-- local next_threater = GetHighestThreat(data)
+				return -(next_threater.threat * ((100 / next_threater.perc) - 1))
+			else
+				return data.threat * ((100 / data.perc) - 1)
+			end
+		end
+		return data.threat
+	elseif pull then -- not in the fight yet but want to see the data
+		for n, data in self.threats do
 			if data.tank then
 				return data.threat
 			end
 		end
 	end
-	return 0 -- meets criteria but no value yet
+	return 0 -- meets IsInteresting criteria but no value yet
 end
 
 function Threat:explode(str, delimiter)

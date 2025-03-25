@@ -4,7 +4,7 @@ local Units = {headerFrames = {}, unitFrames = {}, frameList = {}, childframeLis
 local unitFrames, headerFrames, frameList, childframeList = Units.unitFrames, Units.headerFrames, Units.frameList, Units.childframeList
 local UnitWatch = CreateFrame("Frame")
 UnitWatch.time = 0
--- local RaidRoster = {}
+local RaidRoster = {}
 local GroupRoster = {}
 local RaidPetRoster = {}
 local PartyPetRoster = {}
@@ -15,10 +15,25 @@ local PetExists
 LunaUF.Units = Units
 LunaUF.Units.UnitWatch = UnitWatch
 
-LunaUF.unit_update_event = {}
-LunaUF.unit_update_raid_event = {}
-
 local has_superwow = SetAutoloot and true or false
+
+------------------------------
+-- take over raidframe updates
+local orig_RaidFrame_OnEvent = RaidFrame_OnEvent
+function RaidFrame_OnEvent(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10)
+	if event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PARTY_LEADER_CHANGED" then
+		LunaUF:TriggerEvent("RaidFrame_RAID_ROSTER_UPDATE")
+    return
+  end
+  return orig_RaidFrame_OnEvent(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10)
+end
+
+local function raid_update()
+  RaidFrame_LoadUI()
+  RaidFrame_Update()
+end
+LunaUF:RegisterBucketEvent("RaidFrame_RAID_ROSTER_UPDATE", 0.3, function () raid_update() end)
+------------------------------
 
 -- Frame shown, do a full update
 local function FullUpdate(frame)
@@ -344,278 +359,268 @@ local function RaidHeaderStopMovingOrSizing()
 	end
 end
 
+local function Raid_Update_Event()
+	-- ensure subgroups are calculated already
+	if RaidGroupFrame_Update then
+		RaidGroupFrame_Update()
+	end
+	for _,header in pairs(headerFrames) do
+		header.Update(header.unitGroup or header)
+	end
+end
+LunaUF:RegisterBucketEvent("RAID_ROSTER_UPDATE", 0.3, function () Raid_Update_Event() end)
+
 local function SetupGroupHeader(groupType)
 	local unitGroup = groupType or this.unitGroup
-
-	local function do_setup(unitGroup)
-		local config = LunaUF.db.profile.units.party
-		local header = headerFrames[unitGroup]
-		if UnitInRaid("player") and not config.inraid then
-			header:Hide()
-			return
+	local config = LunaUF.db.profile.units.party
+	local header = headerFrames[unitGroup]
+	if UnitInRaid("player") and not config.inraid then
+		header:Hide()
+		return
+	else
+		header:Show()
+	end
+	local point = LunaUF.constants.AnchorPoint[config.growth]
+	local framesneeded = config.enabled and ((LunaUF.db.profile.locked and GetNumPartyMembers() or 4) + (config.player and 1 or 0)) or 0
+	if framesneeded == 1 and config.player then
+		framesneeded = 0
+	end
+	for i=getn(header.frames)+1, framesneeded do
+		header.frames[i] = Units:CreateUnit("Button", "LUFUnit"..unitGroup..i, header)
+		header.frames[i]:SetScript("OnDragStop", GroupHeaderStopMovingOrSizing)
+		header.frames[i].unitGroup = unitGroup
+		if unitGroup ~= "party" then
+			table.insert(childframeList, header.frames[i])
+		end
+		if unitGroup ~= "partypet" then
+			header.frames[i].UnitExists = UnitExists
 		else
-			header:Show()
+			header.frames[i].UnitExists = UnitIsVisible
 		end
-		local point = LunaUF.constants.AnchorPoint[config.growth]
-		local framesneeded = config.enabled and ((LunaUF.db.profile.locked and GetNumPartyMembers() or 4) + (config.player and 1 or 0)) or 0
-		if framesneeded == 1 and config.player then
-			framesneeded = 0
-		end
-		for i=getn(header.frames)+1, framesneeded do
-			header.frames[i] = Units:CreateUnit("Button", "LUFUnit"..unitGroup..i, header)
-			header.frames[i]:SetScript("OnDragStop", GroupHeaderStopMovingOrSizing)
-			header.frames[i].unitGroup = unitGroup
-			if unitGroup ~= "party" then
-				table.insert(childframeList, header.frames[i])
-			end
-			if unitGroup ~= "partypet" then
-				header.frames[i].UnitExists = UnitExists
-			else
-				header.frames[i].UnitExists = UnitIsVisible
-			end
-		end
+	end
 
-		--Generate Group Table
-		while getn(GroupRoster) > 0 do
-			table.remove(GroupRoster)
+	--Generate Group Table
+	-- while getn(GroupRoster) > 0 do
+	-- 	table.remove(GroupRoster)
+	-- end
+	GroupRoster = {}
+	for i=1, 4 do
+		local unit = "party"..i
+		if UnitExists(unit) then
+			table.insert(GroupRoster,{UnitName(unit), unit})
 		end
-		for i=1, 4 do
-			local unit = "party"..i
-			if UnitExists(unit) then
-				table.insert(GroupRoster,{UnitName(unit), unit})
-			end
+	end
+	if config.sortby == "NAME" then
+		if config.player then
+			table.insert(GroupRoster,{UnitName("player"),"player"})
 		end
-		if config.sortby == "NAME" then
+		if config.order == "ASC" then
+			table.sort(GroupRoster, function (a,b) return a[1]<b[1] end)
+		else
+			table.sort(GroupRoster, function (a,b) return a[1]>b[1] end)
+		end
+	else
+		if config.order ~= "ASC" then
+			table.sort(GroupRoster, function (a,b) return a[2]>b[2] end)
 			if config.player then
 				table.insert(GroupRoster,{UnitName("player"),"player"})
 			end
-			if config.order == "ASC" then
-				table.sort(GroupRoster, function (a,b) return a[1]<b[1] end)
-			else
-				table.sort(GroupRoster, function (a,b) return a[1]>b[1] end)
-			end
 		else
-			if config.order ~= "ASC" then
-				table.sort(GroupRoster, function (a,b) return a[2]>b[2] end)
-				if config.player then
-					table.insert(GroupRoster,{UnitName("player"),"player"})
-				end
-			else
-				if config.player then
-					table.insert(GroupRoster,1,{UnitName("player"),"player"})
-				end
+			if config.player then
+				table.insert(GroupRoster,1,{UnitName("player"),"player"})
 			end
 		end
+	end
 
-		local anchor = header
+	local anchor = header
 
-		local xoffset
-		if config.growth == "RIGHT" or config.growth == "LEFT" then
-			xoffset = ((config.growth == "RIGHT" and 1 or -1) * (LunaUF.db.profile.units.party.size.x + LunaUF.db.profile.units.party.padding))
+	local xoffset
+	if config.growth == "RIGHT" or config.growth == "LEFT" then
+		xoffset = ((config.growth == "RIGHT" and 1 or -1) * (LunaUF.db.profile.units.party.size.x + LunaUF.db.profile.units.party.padding))
+	else
+		xoffset = 0
+	end
+
+	local yoffset
+	if config.growth == "UP" or config.growth == "DOWN" then
+		yoffset = ((config.growth == "UP" and 1 or -1) * (LunaUF.db.profile.units.party.size.y + LunaUF.db.profile.units.party.padding))
+	else
+		yoffset = 0
+	end
+
+	for i,frame in pairs(header.frames) do
+		if i > framesneeded then
+			frame.parentunit = nil
+			frame:Hide()
 		else
-			xoffset = 0
-		end
-
-		local yoffset
-		if config.growth == "UP" or config.growth == "DOWN" then
-			yoffset = ((config.growth == "UP" and 1 or -1) * (LunaUF.db.profile.units.party.size.y + LunaUF.db.profile.units.party.padding))
-		else
-			yoffset = 0
-		end
-
-		for i,frame in pairs(header.frames) do
-			if i > framesneeded then
-				frame.parentunit = nil
-				frame:Hide()
+			if unitGroup == "party" then
+				frame:Show()
+			end
+			frame:ClearAllPoints()
+			frame:SetPoint(point, anchor, point, i>1 and xoffset, i>1 and yoffset)
+			frame:SetWidth(LunaUF.db.profile.units[unitGroup].size.x)
+			frame:SetHeight(LunaUF.db.profile.units[unitGroup].size.y)
+			frame:SetScale(LunaUF.db.profile.units[unitGroup].scale)
+			if not LunaUF.db.profile.locked then
+				frame.unit = "player"
+				frame.parentunit = "player"
+				frame:SetScript("OnDragStart", HeaderStartMoving)
 			else
-				if unitGroup == "party" then
-					frame:Show()
-				end
-				frame:ClearAllPoints()
-				frame:SetPoint(point, anchor, point, i>1 and xoffset, i>1 and yoffset)
-				frame:SetWidth(LunaUF.db.profile.units[unitGroup].size.x)
-				frame:SetHeight(LunaUF.db.profile.units[unitGroup].size.y)
-				frame:SetScale(LunaUF.db.profile.units[unitGroup].scale)
-				if not LunaUF.db.profile.locked then
-					frame.unit = "player"
+				if unitGroup == "partytarget" then
+					frame.unit = GroupRoster[i][2].."target"
+					frame.parentunit = GroupRoster[i][2]
+				elseif unitGroup == "partypet" and GroupRoster[i][2] ~= "player" then
+					frame.unit = "partypet"..string.sub(GroupRoster[i][2],6)
+					frame.parentunit = GroupRoster[i][2]
+				elseif unitGroup == "partypet" then
+					frame.unit = "pet"
 					frame.parentunit = "player"
-					frame:SetScript("OnDragStart", HeaderStartMoving)
 				else
-					if unitGroup == "partytarget" then
-						frame.unit = GroupRoster[i][2].."target"
-						frame.parentunit = GroupRoster[i][2]
-					elseif unitGroup == "partypet" and GroupRoster[i][2] ~= "player" then
-						frame.unit = "partypet"..string.sub(GroupRoster[i][2],6)
-						frame.parentunit = GroupRoster[i][2]
-					elseif unitGroup == "partypet" then
-						frame.unit = "pet"
-						frame.parentunit = "player"
-					else
-						frame.unit = GroupRoster[i][2]
-						frame.parentunit = GroupRoster[i][2]
-					end
-					frame:SetScript("OnDragStart", nil)
+					frame.unit = GroupRoster[i][2]
+					frame.parentunit = GroupRoster[i][2]
 				end
-				Units:SetupFrameModules(frame)
-				anchor = frame
+				frame:SetScript("OnDragStart", nil)
 			end
+			Units:SetupFrameModules(frame)
+			anchor = frame
 		end
-		LunaUF.unit_update_event[unitGroup] = nil
 	end
-
-	if LunaUF.unit_update_event[unitGroup] and LunaUF:IsEventScheduled(LunaUF.unit_update_event[unitGroup]) then
-		return
-	end
-
-	LunaUF.unit_update_event[unitGroup] = LunaUF:ScheduleEvent(function () do_setup(unitGroup) end, 0.3)
 end
 
 local function SetupRaidHeader(passedHeader)
-	local header = passedHeader or this
-
-	local function do_setup(header)
-		local config = LunaUF.db.profile.units.raid
-		local point = LunaUF.constants.AnchorPoint[config.growth]
-		local framesneeded = 0
-		if header.id == 9 then
-			if config.petgrp and (config.showalways or (config.showparty and GetNumPartyMembers() > 0) or UnitInRaid("player")) then
-				framesneeded = not LunaUF.db.profile.locked and 5 or numPets
-			else
-				framesneeded = 0
-			end
-		elseif config.mode == "GROUP" then
-			framesneeded = not LunaUF.db.profile.locked and 5 or RAID_SUBGROUP_LISTS and RAID_SUBGROUP_LISTS[header.id] and getn(RAID_SUBGROUP_LISTS[header.id]) or 0
+	local header = passedHeader or header
+	local config = LunaUF.db.profile.units.raid
+	local point = LunaUF.constants.AnchorPoint[config.growth]
+	local framesneeded = 0
+	if header.id == 9 then
+		if config.petgrp and (config.showalways or (config.showparty and GetNumPartyMembers() > 0) or UnitInRaid("player")) then
+			framesneeded = not LunaUF.db.profile.locked and 5 or numPets
 		else
-			framesneeded = not LunaUF.db.profile.locked and 5 or RAID_SUBGROUP_LISTS and RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]] and getn(RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]]) or 0
+			framesneeded = 0
 		end
-		if not UnitInRaid("player") and header.id == 1 and LunaUF.db.profile.locked then
-			if config.showalways or (config.showparty and GetNumPartyMembers() > 0) then
-				framesneeded = GetNumPartyMembers() + 1
-			end
+	elseif config.mode == "GROUP" then
+		framesneeded = not LunaUF.db.profile.locked and 5 or RAID_SUBGROUP_LISTS and RAID_SUBGROUP_LISTS[header.id] and getn(RAID_SUBGROUP_LISTS[header.id]) or 0
+	else
+		framesneeded = not LunaUF.db.profile.locked and 5 or RAID_SUBGROUP_LISTS and RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]] and getn(RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]]) or 0
+	end
+	if not UnitInRaid("player") and header.id == 1 and LunaUF.db.profile.locked then
+		if config.showalways or (config.showparty and GetNumPartyMembers() > 0) then
+			framesneeded = GetNumPartyMembers() + 1
 		end
-		for i=getn(header.frames)+1, framesneeded do
-			header.frames[i] = Units:CreateUnit("Button", "LUFUnitraid"..header.id.."member"..i, header)
-			header.frames[i]:SetScript("OnDragStop", RaidHeaderStopMovingOrSizing)
-			header.frames[i].unitGroup = "raid"
-		end
-
-		--Generate RaidGroup Table
-		-- while getn(RaidRoster) > 0 do
-			-- table.remove(RaidRoster)
-		-- end
-		-- ^ why?
-		local RaidRoster = {}
-
-		if header.id == 9 and framesneeded > 0 then
-			if UnitInRaid("player") then
-				for unitid,_ in pairs(RaidPetRoster) do
-					if UnitName(unitid) then
-						table.insert(RaidRoster,{UnitName(unitid),unitid})
-					end
-				end
-			elseif GetNumPartyMembers() > 0 then
-				for unitid,_ in pairs(PartyPetRoster) do
-					if UnitName(unitid) then
-						table.insert(RaidRoster,{UnitName(unitid),unitid})
-					end
-				end
-			elseif PetExists and UnitName("pet") then
-				table.insert(RaidRoster,{UnitName("pet"),"pet"})
-			end
-			if framesneeded > getn(RaidRoster) then
-				framesneeded = getn(RaidRoster)
-			end
-		elseif LunaUF.db.profile.locked and framesneeded > 0 and UnitInRaid("player") then
-			if config.mode == "GROUP" and RAID_SUBGROUP_LISTS[header.id] then
-				for _,v in pairs(RAID_SUBGROUP_LISTS[header.id]) do
-					table.insert(RaidRoster,{UnitName("raid"..v),"raid"..v})
-				end
-			elseif RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]] and framesneeded > 0 then
-				for _,v in pairs(RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]]) do
-					table.insert(RaidRoster,{UnitName("raid"..v),"raid"..v})
-				end
-			end
-		elseif LunaUF.db.profile.locked and framesneeded > 0 then
-			table.insert(RaidRoster,{UnitName("player"),"player"})
-			for i=1, 4 do
-				local unit = "party"..i
-				if UnitExists(unit) then
-					table.insert(RaidRoster,{UnitName(unit),unit})
-				else
-					break
-				end
-			end
-		end
-
-		local anchor = header
-		local xoffset
-		local yoffset
-
-		if config.growth == "RIGHT" or config.growth == "LEFT" then
-			xoffset = (config.growth == "LEFT" and 1 or -1)
-		else
-			xoffset = 0
-		end
-
-		if config.growth == "UP" or config.growth == "DOWN" then
-			yoffset = (config.growth == "DOWN" and 1 or -1)
-		else
-			yoffset = 0
-		end
-
-		if framesneeded > 0 then
-			if LunaUF.db.profile.units.raid.sortby == "NAME" then
-				if LunaUF.db.profile.units.raid.order == "ASC" then
-					table.sort(RaidRoster, function (a,b) return a[1]<b[1] end)
-				else
-					table.sort(RaidRoster, function (a,b) return a[1]>b[1] end)
-				end
-			else
-				if LunaUF.db.profile.units.raid.order ~= "ASC" then
-					table.sort(RaidRoster, function (a,b) return a[2]>b[2] end)
-				else
-					table.sort(RaidRoster, function (a,b) return a[2]<b[2] end)
-				end
-			end
-			header.title:SetPoint("CENTER", header, "CENTER", 20*xoffset, 20*yoffset)
-			local text = config.mode == "CLASS" and LunaUF.constants.RaidClassMapping[header.id] or ("GRP "..header.id)
-			header.title:SetText(LunaUF.db.profile.units.raid.titles and text or "")
-		else
-			header.title:SetText("")
-		end
-
-		xoffset = xoffset * (config.size.x + config.padding) * -1
-		yoffset = yoffset * (config.size.y + config.padding) * -1
-
-		for i,frame in pairs(header.frames) do
-			if i > framesneeded then
-				frame:Hide()
-			else
-				frame:Show()
-				frame:ClearAllPoints()
-				frame:SetPoint(point, anchor, point, i>1 and xoffset, i>1 and yoffset)
-				frame:SetWidth(config.size.x)
-				frame:SetHeight(config.size.y)
-				frame:SetScale(config.scale)
-				if not LunaUF.db.profile.locked then
-					frame.unit = "player"
-					frame:SetScript("OnDragStart", HeaderStartMoving)
-				else
-					frame.unit = RaidRoster[i][2]
-					frame:SetScript("OnDragStart", nil)
-				end
-				Units:SetupFrameModules(frame)
-				anchor = frame
-			end
-		end
-		LunaUF.unit_update_raid_event[header.id] = nil
+	end
+	for i=getn(header.frames)+1, framesneeded do
+		header.frames[i] = Units:CreateUnit("Button", "LUFUnitraid"..header.id.."member"..i, header)
+		header.frames[i]:SetScript("OnDragStop", RaidHeaderStopMovingOrSizing)
+		header.frames[i].unitGroup = "raid"
 	end
 
-	if LunaUF.unit_update_raid_event[header.id] and LunaUF:IsEventScheduled(LunaUF.unit_update_raid_event[header.id]) then
-		return
+	--Generate RaidGroup Table
+	-- while getn(RaidRoster) > 0 do
+		-- table.remove(RaidRoster)
+	-- end
+	RaidRoster = {}
+	if header.id == 9 and framesneeded > 0 then
+		if UnitInRaid("player") then
+			for unitid,_ in pairs(RaidPetRoster) do
+				if UnitName(unitid) then
+					table.insert(RaidRoster,{UnitName(unitid),unitid})
+				end
+			end
+		elseif GetNumPartyMembers() > 0 then
+			for unitid,_ in pairs(PartyPetRoster) do
+				if UnitName(unitid) then
+					table.insert(RaidRoster,{UnitName(unitid),unitid})
+				end
+			end
+		elseif PetExists and UnitName("pet") then
+			table.insert(RaidRoster,{UnitName("pet"),"pet"})
+		end
+		if framesneeded > getn(RaidRoster) then
+			framesneeded = getn(RaidRoster)
+		end
+	elseif LunaUF.db.profile.locked and framesneeded > 0 and UnitInRaid("player") then
+		if config.mode == "GROUP" and RAID_SUBGROUP_LISTS[header.id] then
+			for _,v in pairs(RAID_SUBGROUP_LISTS[header.id]) do
+				table.insert(RaidRoster,{UnitName("raid"..v),"raid"..v})
+			end
+		elseif RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]] and framesneeded > 0 then
+			for _,v in pairs(RAID_SUBGROUP_LISTS[LunaUF.constants.RaidClassMapping[header.id]]) do
+				table.insert(RaidRoster,{UnitName("raid"..v),"raid"..v})
+			end
+		end
+	elseif LunaUF.db.profile.locked and framesneeded > 0 then
+		table.insert(RaidRoster,{UnitName("player"),"player"})
+		for i=1, 4 do
+			local unit = "party"..i
+			if UnitExists(unit) then
+				table.insert(RaidRoster,{UnitName(unit),unit})
+			else
+				break
+			end
+		end
 	end
 
-	LunaUF.unit_update_raid_event[header.id] = LunaUF:ScheduleEvent(function () do_setup(header) end, 0.3)
+	local anchor = header
+	local xoffset
+	local yoffset
+
+	if config.growth == "RIGHT" or config.growth == "LEFT" then
+		xoffset = (config.growth == "LEFT" and 1 or -1)
+	else
+		xoffset = 0
+	end
+
+	if config.growth == "UP" or config.growth == "DOWN" then
+		yoffset = (config.growth == "DOWN" and 1 or -1)
+	else
+		yoffset = 0
+	end
+
+	if framesneeded > 0 then
+		if LunaUF.db.profile.units.raid.sortby == "NAME" then
+			if LunaUF.db.profile.units.raid.order == "ASC" then
+				table.sort(RaidRoster, function (a,b) return a[1]<b[1] end)
+			else
+				table.sort(RaidRoster, function (a,b) return a[1]>b[1] end)
+			end
+		else
+			if LunaUF.db.profile.units.raid.order ~= "ASC" then
+				table.sort(RaidRoster, function (a,b) return a[2]>b[2] end)
+			else
+				table.sort(RaidRoster, function (a,b) return a[2]<b[2] end)
+			end
+		end
+		header.title:SetPoint("CENTER", header, "CENTER", 20*xoffset, 20*yoffset)
+		local text = config.mode == "CLASS" and LunaUF.constants.RaidClassMapping[header.id] or ("GRP "..header.id)
+		header.title:SetText(LunaUF.db.profile.units.raid.titles and text or "")
+	else
+		header.title:SetText("")
+	end
+
+	xoffset = xoffset * (config.size.x + config.padding) * -1
+	yoffset = yoffset * (config.size.y + config.padding) * -1
+
+	for i,frame in pairs(header.frames) do
+		if i > framesneeded then
+			frame:Hide()
+		else
+			frame:Show()
+			frame:ClearAllPoints()
+			frame:SetPoint(point, anchor, point, i>1 and xoffset, i>1 and yoffset)
+			frame:SetWidth(config.size.x)
+			frame:SetHeight(config.size.y)
+			frame:SetScale(config.scale)
+			if not LunaUF.db.profile.locked then
+				frame.unit = "player"
+				frame:SetScript("OnDragStart", HeaderStartMoving)
+			else
+				frame.unit = RaidRoster[i][2]
+				frame:SetScript("OnDragStart", nil)
+			end
+			Units:SetupFrameModules(frame)
+			anchor = frame
+		end
+	end
 end
 
 -- Create the generic things that we want in every frame regardless if it's a button or a header
@@ -708,7 +713,7 @@ function Units:LoadGroupHeader(unit)
 		header.frames = {}
 		header.Update = SetupGroupHeader
 		header.unitGroup = unit
-		header:SetScript("OnEvent", SetupGroupHeader)
+		header:SetScript("OnEvent", function () LunaUF:TriggerEvent("RAID_ROSTER_UPDATE") end)
 		header:RegisterEvent("PARTY_MEMBERS_CHANGED")
 		header:RegisterEvent("RAID_ROSTER_UPDATE")
 	else
@@ -747,7 +752,7 @@ function Units:LoadRaidGroupHeader()
 			header.title:SetShadowColor(0, 0, 0, 1.0)
 			header.title:SetShadowOffset(0.80, -0.80)
 			header.title:SetFont(LunaUF.defaultFont, 14)
-			header:SetScript("OnEvent", SetupRaidHeader)
+			header:SetScript("OnEvent", function () LunaUF:TriggerEvent("RAID_ROSTER_UPDATE") end)
 			if header.id == 1 or header.id == 9 then
 				header:RegisterEvent("PARTY_MEMBERS_CHANGED")
 			end

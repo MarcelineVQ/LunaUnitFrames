@@ -679,14 +679,29 @@ local defaultTags = {
 						end
 						return "";
 					end;
+	["pullthreattank"]			= function(unit)
+						local threat = LunaUF.modules.threat:GetThreat("player",false,true,true)
+						if threat then
+							local l
+							if math.abs(threat) >= 10000 then
+								l = format("%.fK",threat/1000)
+							elseif math.abs(threat) >= 1000 then
+								l = format("%.2fK",threat/1000)
+							else
+								l = format("%.f",threat)
+							end
+							return l
+						end
+						return "";
+					end;
 	["pullthreat"]			= function(unit)
 						local threat = LunaUF.modules.threat:GetThreat("player",false,true)
 						if threat then
 							local l
-							if math.abs(threat) >= 1000000 then
-								l = format("%.5fM",threat/1000000)
-							elseif math.abs(threat) >= 1000 then
+							if math.abs(threat) >= 10000 then
 								l = format("%.fK",threat/1000)
+							elseif math.abs(threat) >= 1000 then
+								l = format("%.2fK",threat/1000)
 							else
 								l = format("%.f",threat)
 							end
@@ -695,17 +710,28 @@ local defaultTags = {
 						return "";
 					end;
 	["perthreat"]			= function(unit)
-						local threat = LunaUF.modules.threat:GetThreat("player",true)
+						local threat = LunaUF.modules.threat:GetThreat("player",true,false,false)
 						if threat then
 							if threat >= 50 then
-								return Hex(1, 1 - (threat - 50) / 50, 0) .. format("%.f",threat) .. "|r"
+								return Hex(1, 1 - (math.min(100,threat) - 50) / 50, 0) .. format("%.f",threat) .. "|r"
 							else
 								return Hex(threat / 50,1,0) .. format("%.f",threat) .. "|r"
 							end
 						end
 						return "";
 					end;
-	["healerhealth"]		= function(unit)
+	["perthreattank"]			= function(unit)
+						local threat = LunaUF.modules.threat:GetThreat("player",true,false,true)
+						if threat then
+							if threat >= 50 then
+								return Hex(1, 1 - (math.min(100,threat) - 50) / 50, 0) .. format("%.f",threat) .. "|r"
+							else
+								return Hex(threat / 50,1,0) .. format("%.f",threat) .. "|r"
+							end
+						end
+						return "";
+					end;
+					["healerhealth"]		= function(unit)
 								if UnitIsGhost(unit) then
 									return L["Ghost"]
 								elseif not UnitIsConnected(unit) then
