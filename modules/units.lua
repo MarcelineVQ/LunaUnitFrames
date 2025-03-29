@@ -22,7 +22,7 @@ local has_superwow = SetAutoloot and true or false
 local orig_RaidFrame_OnEvent = RaidFrame_OnEvent
 function RaidFrame_OnEvent(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10)
 	if event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PARTY_LEADER_CHANGED" then
-		LunaUF:TriggerEvent("RaidFrame_RAID_ROSTER_UPDATE")
+		LunaUF:TriggerEvent("RaidFrame_RaidRosterUpdate")
     return
   end
   return orig_RaidFrame_OnEvent(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10)
@@ -32,7 +32,7 @@ local function raid_update()
   RaidFrame_LoadUI()
   RaidFrame_Update()
 end
-LunaUF:RegisterBucketEvent("RaidFrame_RAID_ROSTER_UPDATE", 0.3, function () raid_update() end)
+LunaUF:RegisterBucketEvent("RaidFrame_RaidRosterUpdate", 0.3, function () raid_update() end)
 ------------------------------
 
 -- Frame shown, do a full update
@@ -361,14 +361,12 @@ end
 
 local function Raid_Update_Event()
 	-- ensure subgroups are calculated already
-	if RaidGroupFrame_Update then
-		RaidGroupFrame_Update()
-	end
+	RaidGroupFrame_Update()
 	for _,header in pairs(headerFrames) do
 		header.Update(header.unitGroup or header)
 	end
 end
-LunaUF:RegisterBucketEvent("RAID_ROSTER_UPDATE", 0.3, function () Raid_Update_Event() end)
+LunaUF:RegisterBucketEvent("LunaUF_RaidRosterUpdate", 0.3, function () Raid_Update_Event() end)
 
 local function SetupGroupHeader(groupType)
 	local unitGroup = groupType or this.unitGroup
@@ -713,7 +711,7 @@ function Units:LoadGroupHeader(unit)
 		header.frames = {}
 		header.Update = SetupGroupHeader
 		header.unitGroup = unit
-		header:SetScript("OnEvent", function () LunaUF:TriggerEvent("RAID_ROSTER_UPDATE") end)
+		header:SetScript("OnEvent", function () LunaUF:TriggerEvent("LunaUF_RaidRosterUpdate") end)
 		header:RegisterEvent("PARTY_MEMBERS_CHANGED")
 		header:RegisterEvent("RAID_ROSTER_UPDATE")
 	else
@@ -733,6 +731,7 @@ function Units:LoadGroupHeader(unit)
 		header:Show()
 		header:SetMovable(0)
 	end
+	RaidGroupFrame_Update() -- make sure info is current
 	header.Update(unit)
 end
 
@@ -752,7 +751,7 @@ function Units:LoadRaidGroupHeader()
 			header.title:SetShadowColor(0, 0, 0, 1.0)
 			header.title:SetShadowOffset(0.80, -0.80)
 			header.title:SetFont(LunaUF.defaultFont, 14)
-			header:SetScript("OnEvent", function () LunaUF:TriggerEvent("RAID_ROSTER_UPDATE") end)
+			header:SetScript("OnEvent", function () LunaUF:TriggerEvent("LunaUF_RaidRosterUpdate") end)
 			if header.id == 1 or header.id == 9 then
 				header:RegisterEvent("PARTY_MEMBERS_CHANGED")
 			end
@@ -785,6 +784,8 @@ function Units:LoadRaidGroupHeader()
 		else
 			header:SetMovable(0)
 		end
+
+		RaidGroupFrame_Update() -- make sure info is current
 		header.Update(header)
 	end
 end

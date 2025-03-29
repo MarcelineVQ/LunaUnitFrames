@@ -23,7 +23,7 @@ local inv_slots = {1,3,5,6,7,8,9,10}
 local earthfury_set = {
 	[1] = "Earthfury Helmet",
 	[3] = "Earthfury Spaulders",
-	[5] =	"Earthfury Chestpiece",
+	[5] = "Earthfury Chestpiece",
 	[6] = "Earthfury Belt",
 	[7] = "Earthfury Pants",
 	[8] = "Earthfury Boots",
@@ -264,15 +264,15 @@ function Totems.UNIT_MODEL_CHANGED(frame,unit)
 	frame.totems[TotemDB[totem].type].guid = arg1
 
 	-- clean stales if any
-	for _,totem in pairs(frame.totems) do
-		if not UnitExists(totem.guid) then
-			ClearTotem(totem)
-		end
-	end
+	-- for _,totem in pairs(frame.totems) do
+	-- 	if not UnitExists(totem.guid) then
+	-- 		ClearTotem(totem)
+	-- 	end
+	-- end
 end
 
 function Totems.UNIT_CASTEVENT(frame,caster,target,action,spell_id,cast_time)
-	if not UnitIsUnit(caster, "player") or action ~= "CAST" then return end
+	if action ~= "CAST" or not UnitIsUnit(caster, "player") then return end
 
 	-- recall
 	if spell_id == 45513 then
