@@ -361,7 +361,9 @@ end
 
 local function Raid_Update_Event()
 	-- ensure subgroups are calculated already
-	RaidGroupFrame_Update()
+	if RaidGroupFrame_Update then
+		RaidGroupFrame_Update()
+	end
 	for _,header in pairs(headerFrames) do
 		header.Update(header.unitGroup or header)
 	end
@@ -731,7 +733,9 @@ function Units:LoadGroupHeader(unit)
 		header:Show()
 		header:SetMovable(0)
 	end
-	RaidGroupFrame_Update() -- make sure info is current
+	if RaidGroupFrame_Update then
+		RaidGroupFrame_Update()
+	end
 	header.Update(unit)
 end
 
@@ -785,7 +789,9 @@ function Units:LoadRaidGroupHeader()
 			header:SetMovable(0)
 		end
 
-		RaidGroupFrame_Update() -- make sure info is current
+		if RaidGroupFrame_Update then
+			RaidGroupFrame_Update()
+		end
 		header.Update(header)
 	end
 end
