@@ -731,7 +731,9 @@ function Units:LoadGroupHeader(unit)
 		header:Show()
 		header:SetMovable(0)
 	end
-	RaidGroupFrame_Update() -- make sure info is current
+	if ( RaidGroupFrame_Update ) then
+		RaidGroupFrame_Update() -- make sure info is current
+	end
 	header.Update(unit)
 end
 
@@ -784,8 +786,9 @@ function Units:LoadRaidGroupHeader()
 		else
 			header:SetMovable(0)
 		end
-
-		RaidGroupFrame_Update() -- make sure info is current
+		if ( RaidGroupFrame_Update ) then
+			RaidGroupFrame_Update() -- make sure info is current
+		end
 		header.Update(header)
 	end
 end
