@@ -12,7 +12,8 @@ local ZoneWatch = CreateFrame("Frame")
 local _, playerClass = UnitClass("player")
 
 local has_superwow = SetAutoloot and true or false
-local has_unitxp = pcall(UnitXP, "nop", "nop") and true or false
+-- local has_unitxp = pcall(UnitXP, "nop", "nop") and true or false -- "nop" isn't good enough because other UnitXP based addons provide it
+local has_unitxp = pcall(UnitXP, "distanceBetween", "", "") and true or false
 
 -- Big thx to Renew & Astrolabe
 local MapSizes = {
@@ -302,7 +303,7 @@ function Range:GetRange(UnitID)
 		elseif has_superwow and UnitCanAssist("player",UnitID) then
 			local px,py,pz = UnitPosition("player")
 			local ux,uy,uz = UnitPosition(UnitID)
-			return math.sqrt((ux-px)^2,(uy-py)^2,(uz-pz)^2)
+			return math.sqrt((ux-px)^2 + (uy-py)^2 + (uz-pz)^2)
 		end
 
 		if CheckInteractDistance(UnitID, 1) then
