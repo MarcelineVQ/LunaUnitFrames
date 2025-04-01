@@ -262,13 +262,6 @@ function Totems.UNIT_MODEL_CHANGED(frame,unit)
 	if not (totem and TotemDB[totem]) then return end
 
 	frame.totems[TotemDB[totem].type].guid = arg1
-
-	-- clean stales if any
-	-- for _,totem in pairs(frame.totems) do
-	-- 	if not UnitExists(totem.guid) then
-	-- 		ClearTotem(totem)
-	-- 	end
-	-- end
 end
 
 function Totems.UNIT_CASTEVENT(frame,caster,target,action,spell_id,cast_time)

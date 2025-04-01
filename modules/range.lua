@@ -298,7 +298,7 @@ function Range:GetRange(UnitID)
 			if d <= 100 and LunaUF.db.profile.RangeLoS then
 				return UnitXP("inSight", "player", UnitID) and d or 100
 			end
-			return UnitXP("distanceBetween","player",UnitID)
+			return d
 		elseif has_superwow and UnitCanAssist("player",UnitID) then
 			local px,py,pz = UnitPosition("player")
 			local ux,uy,uz = UnitPosition(UnitID)
