@@ -291,7 +291,9 @@ ZoneWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
 for i in pairs(events) do ZoneWatch:RegisterEvent(i) end
 
 function Range:GetRange(UnitID)
-    if UnitExists(UnitID) and UnitIsVisible(UnitID) then
+	if UnitIsUnit("player", UnitID) then return 0 end
+
+	if UnitExists(UnitID) and UnitIsVisible(UnitID) then
 		local _,instance = IsInInstance()
 
 		if has_unitxp and UnitIsVisible(UnitID) then

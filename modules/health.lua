@@ -2,6 +2,23 @@ local LunaUF = LunaUF
 local Health = {}
 LunaUF:RegisterModule(Health, "healthBar", LunaUF.L["Health bar"], true)
 
+-- local tooltip = LunaUF.ScanTip
+
+local function feigncheck(unit)
+	local _,class = UnitClass(unit)
+	if class ~= "HUNTER" then return end
+	for i=1,32 do
+		if not UnitBuff(unit,i) then
+			return
+		end
+		LunaUF.ScanTip:ClearLines()
+		LunaUF.ScanTip:SetUnitBuff(unit,i)
+		if LunaScanTipTextLeft1:GetText() == LunaUF.L["Feign Death"] then
+			return true
+		end
+	end
+end
+
 local function OnEvent()
 	if arg1 ~= this:GetParent().unit then return end
 	if event == "UNIT_FACTION" or event == "UNIT_HAPPINESS" then
@@ -48,6 +65,7 @@ local function updateTimer()
 	local frame = this:GetParent()
 	local currentHealth = UnitHealth(frame.unit)
 	if( currentHealth == this.currentHealth ) then return end
+	if frame.isDead and feigncheck(frame.unit) then return end
 	this.currentHealth = currentHealth
 	if frame.isOffline or frame.isDead then
 		frame.healthBar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
@@ -195,10 +213,17 @@ end
 function Health:Update(frame)
 	frame.isOffline = not UnitIsConnected(frame.unit)
 	frame.isDead = UnitIsDeadOrGhost(frame.unit) or (UnitHealth(frame.unit) == 1 and not UnitIsVisible(frame.unit))
+	if not frame.isDead then
+		frame.currentHealth = UnitHealth(frame.unit)
+	end
 	frame.healthBar:SetMinMaxValues(0, UnitHealthMax(frame.unit))
 
 	if frame.isOffline or frame.isDead then
-		frame.healthBar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
+		if feigncheck(frame.unit) then
+			frame.healthBar:SetValue(frame.currentHealth)
+		else
+			frame.healthBar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
+		end
 	else
 		frame.healthBar:SetValue(UnitHealth(frame.unit))
 	end
