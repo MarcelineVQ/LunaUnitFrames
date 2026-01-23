@@ -22,7 +22,7 @@ Threat.tankNotify = false
 
 function Threat:OnEnable()
 	-- turtle-wow check
-	if string.find(GetBuildInfo(),"^1.17.") then
+	if string.find(GetBuildInfo(),"^1.18.") then
 		self:RegisterEvent("PLAYER_REGEN_DISABLED")
 		self:RegisterEvent("PLAYER_REGEN_ENABLED")
 		self:RegisterEvent("PLAYER_ENTERING_WORLD")
