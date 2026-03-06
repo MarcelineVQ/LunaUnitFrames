@@ -102,9 +102,22 @@ end
 
 local function OnEvent()
 	if (event == "UNIT_INVENTORY_CHANGED" and arg1 == "player") then
-		WeaponEnchantScan(this:GetParent())
+		this.dirty_enchant = true
 	elseif event == "PLAYER_AURAS_CHANGED" or arg1 == this:GetParent().unit then
-		Auras:FullUpdate(this:GetParent())
+		this.dirty = true
+	end
+end
+
+local function AuraOnUpdate()
+	if not this.dirty and not this.dirty_enchant then return end
+	local frame = this:GetParent()
+	if this.dirty_enchant then
+		WeaponEnchantScan(frame)
+		this.dirty_enchant = nil
+	end
+	if this.dirty then
+		Auras:FullUpdate(frame)
+		this.dirty = nil
 	end
 end
 
@@ -244,6 +257,7 @@ function Auras:OnEnable(frame)
 		frame.auras:RegisterEvent("UNIT_AURA")
 	end
 	frame.auras:SetScript("OnEvent", OnEvent)
+	frame.auras:SetScript("OnUpdate", AuraOnUpdate)
 end
 
 function Auras:OnDisable(frame)

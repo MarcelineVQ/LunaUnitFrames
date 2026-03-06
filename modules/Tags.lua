@@ -857,10 +857,22 @@ end
 
 local function OnUpdate()
 	local frame = this:GetParent()
-	local bartags = LunaUF.db.profile.units[frame.unitGroup].tags.bartags
+	local now = GetTime()
+
+	-- Update immediately if health/power changed, otherwise throttle to 0.2s
+	if not frame.dirty_tags then
+		if not this.nextUpdate or now < this.nextUpdate then return end
+	end
+	frame.dirty_tags = nil
+	this.nextUpdate = now + 0.2
+
 	for barname,barfontstrings in pairs(frame.fontstrings) do
 		for align,fontstring in pairs(barfontstrings) do
-			fontstring:SetText(GetTagText(fontstring))
+			local text = GetTagText(fontstring)
+			if text ~= fontstring.lastText then
+				fontstring.lastText = text
+				fontstring:SetText(text)
+			end
 		end
 	end
 end
@@ -968,6 +980,7 @@ function Tags:FullUpdate(frame)
 			self:SplitTags(fontstring,bartags[barname][align],frame.unit)
 		end
 	end
+	frame.dirty_tags = true
 end
 
 LunaUF:RegisterEvent("VARIABLES_LOADED", function ()

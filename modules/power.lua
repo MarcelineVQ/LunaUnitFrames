@@ -53,13 +53,17 @@ end
 local function OnEvent()
 	if arg1 ~= this:GetParent().unit then return end
 	if event == "UNIT_DISPLAYPOWER" then
-		Power:UpdateColor(this:GetParent())
+		this.dirty_color = true
+	elseif event == "UNIT_MAXMANA" or event == "UNIT_MAXRAGE" or event == "UNIT_MAXENERGY" or event == "UNIT_MAXFOCUS" then
+		this.dirty_maxpower = true
 	else
+		-- Ticker needs timestamp at event time for 5-second rule
 		if this.ticker and (not this.ticker.startTime or UnitMana("player") > (this.currentPower or 0)) then
 			this.ticker.startTime = GetTime()
 		end
 	end
-	Power:Update(this:GetParent())
+	this.dirty = true
+	this:GetParent().dirty_tags = true
 end
 
 local function UpdateManaUsage()
@@ -98,16 +102,49 @@ local function UpdateManaUsage()
 end
 
 local function updatePower()
-	local currentPower = UnitMana(this.parent.unit)
-	local prevPower = this.currentPower or 0
-	if( currentPower == prevPower ) then return end
-	if this.ticker and (not this.ticker.startTime or UnitMana("player") > prevPower) then
-		this.ticker.startTime = GetTime()
+	local bar = this
+	local frame = bar.parent
+	local dirty = bar.dirty
+
+	-- Handle power type change (UNIT_DISPLAYPOWER)
+	if bar.dirty_color then
+		Power:UpdateColor(frame)
+		if UnitPowerType(frame.unit) > 0 then
+			if LunaUF.db.profile.units[frame.unitGroup].powerBar.hide and not bar.hidden then
+				bar.hidden = true
+				LunaUF.Units:PositionWidgets(frame)
+			elseif not LunaUF.db.profile.units[frame.unitGroup].powerBar.hide and bar.hidden then
+				bar.hidden = nil
+				LunaUF.Units:PositionWidgets(frame)
+			end
+		elseif bar.hidden then
+			bar.hidden = nil
+			LunaUF.Units:PositionWidgets(frame)
+		end
+		bar.dirty_color = nil
+		dirty = true
 	end
-	this.currentPower = currentPower
-	this:SetValue(currentPower)
-	
-	if this.parent.unit == "player" then
+
+	-- Handle max power change
+	if bar.dirty_maxpower then
+		bar:SetMinMaxValues(0, UnitManaMax(frame.unit))
+		bar.dirty_maxpower = nil
+		dirty = true
+	end
+
+	-- Check for actual power change
+	local currentPower = UnitMana(frame.unit)
+	if currentPower ~= (bar.currentPower or 0) then
+		dirty = true
+	end
+
+	if not dirty then return end
+	bar.dirty = nil
+
+	bar.currentPower = currentPower
+	bar:SetValue(UnitIsDeadOrGhost(frame.unit) and 0 or not UnitIsConnected(frame.unit) and 0 or currentPower)
+
+	if frame.unit == "player" then
 		UpdateManaUsage()
 	end
 end

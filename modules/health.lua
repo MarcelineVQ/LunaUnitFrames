@@ -22,10 +22,12 @@ end
 local function OnEvent()
 	if arg1 ~= this:GetParent().unit then return end
 	if event == "UNIT_FACTION" or event == "UNIT_HAPPINESS" then
-		Health:UpdateColor(this:GetParent())
-	else
-		Health:Update(this:GetParent())
+		this.dirty_color = true
+	elseif event == "UNIT_MAXHEALTH" then
+		this.dirty_maxhealth = true
 	end
+	this.dirty = true
+	this:GetParent().dirty_tags = true
 end
 
 local function getGradientColor(unit, startColor)
@@ -60,35 +62,68 @@ local function classColor(unit)
 	return class and LunaUF.db.profile.classColors[class]
 end
 
--- Not doing full health update, because other checks can lag behind without much issue
 local function updateTimer()
-	local frame = this:GetParent()
+	local bar = this
+	local frame = bar:GetParent()
+	local dirty = bar.dirty
+
+	-- Handle maxhealth change (rare, but needs SetMinMaxValues before SetValue)
+	if bar.dirty_maxhealth then
+		bar:SetMinMaxValues(0, UnitHealthMax(frame.unit))
+		bar.dirty_maxhealth = nil
+		dirty = true
+	end
+
+	-- Handle color-only events (faction/happiness change)
+	if bar.dirty_color then
+		Health:UpdateColor(frame)
+		bar.dirty_color = nil
+	end
+
+	-- Check for actual health change
 	local currentHealth = UnitHealth(frame.unit)
-	if( currentHealth == this.currentHealth ) then return end
+	if currentHealth ~= bar.currentHealth then
+		dirty = true
+	end
+
+	if not dirty then return end
+	bar.dirty = nil
+
+	-- Update offline/dead state
+	frame.isOffline = not UnitIsConnected(frame.unit)
+	frame.isDead = UnitIsDeadOrGhost(frame.unit) or (UnitHealth(frame.unit) == 1 and not UnitIsVisible(frame.unit))
+
 	if frame.isDead and feigncheck(frame.unit) then return end
-	this.currentHealth = currentHealth
+
+	bar.currentHealth = currentHealth
+
+	-- Update bar value
 	if frame.isOffline or frame.isDead then
-		frame.healthBar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
+		bar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
 	else
-		this:SetValue(currentHealth)
+		bar:SetValue(currentHealth)
 	end
 
-	-- Update incoming heal number
-	if LunaUF.db.profile.units[frame.unitGroup].incheal.enabled and frame.incheal then
-		LunaUF.modules.incheal:FullUpdate(frame)
-	end
-
-	-- The target is not offline, and we have a health percentage so update the gradient
-	if( not this.wasOffline and this.hasPercent ) then
+	-- Update bar color based on state
+	if frame.isOffline then
+		bar.wasOffline = true
+		Health:SetBarColor(bar, LunaUF.db.profile.units[frame.unitGroup].healthBar.invert, LunaUF.db.profile.healthColors.offline)
+	elseif bar.wasOffline then
+		bar.wasOffline = nil
+		Health:UpdateColor(frame)
+	elseif bar.hasPercent then
 		local color
 		if ( LunaUF.db.profile.units[frame.unitGroup].healthBar.classGradient and
 		     ( UnitIsPlayer(frame.unit) or UnitCreatureFamily(frame.unit) ) ) then
 			color = classColor(frame.unit)
 		end
-
 		color = getGradientColor(frame.unit, color or LunaUF.db.profile.healthColors.green)
+		Health:SetBarColor(bar, LunaUF.db.profile.units[frame.unitGroup].healthBar.invert, color)
+	end
 
-		Health:SetBarColor(this, LunaUF.db.profile.units[frame.unitGroup].healthBar.invert, color)
+	-- Update incoming heal
+	if LunaUF.db.profile.units[frame.unitGroup].incheal.enabled and frame.incheal then
+		LunaUF.modules.incheal:FullUpdate(frame)
 	end
 end
 
