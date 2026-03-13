@@ -129,6 +129,22 @@ local function UnitWatchOnUpdate()
 		if PetRosterChanged and headerFrames["raid9"] then
 			headerFrames["raid9"].Update(headerFrames["raid9"])
 		end
+		-- Focus frame GUID resolution
+		if has_superwow and unitFrames.focus and LunaUF.db.profile.units.focus.enabled then
+			local frame = unitFrames.focus
+			if LunaUF.focusGUID and UnitExists(LunaUF.focusGUID) then
+				if frame.unit ~= LunaUF.focusGUID then
+					frame.unit = LunaUF.focusGUID
+				end
+				if not frame:IsShown() then
+					frame:Show()
+				else
+					FullUpdate(frame)
+				end
+			elseif frame:IsShown() and LunaUF.db.profile.locked then
+				frame:Hide()
+			end
+		end
 	end
 end
 
@@ -300,8 +316,8 @@ local function StopMovingOrSizing()
 	this:StopMovingOrSizing()
 	LunaUF.db.profile.units[this.unitGroup].position.x = x * scale
 	LunaUF.db.profile.units[this.unitGroup].position.y = y * scale
-	for i=2,6 do
-		if LunaOptionsFrame.pages[i].id == this.unitGroup then
+	for i=2,12 do
+		if LunaOptionsFrame.pages[i] and LunaOptionsFrame.pages[i].id == this.unitGroup then
 			LunaOptionsFrame.pages[i].xInput:SetText(x * scale)
 			LunaOptionsFrame.pages[i].yInput:SetText(y * scale)
 		end
@@ -660,6 +676,7 @@ function Units:LoadUnit(unit)
 		frame = unitFrames[unit]
 	else
 		frame = self:CreateUnit("Button", "LUFUnit" .. unit, UIParent)
+		frame:Hide()
 		frame.unitGroup = unit
 		frame.parentunit = unit
 		frame.UnitExists = UnitExists
@@ -689,18 +706,29 @@ function Units:LoadUnit(unit)
 		frame:SetMovable(1)
 		frame.unit = "player"
 	else
-		if unit ~= "player" and not UnitExists(unit) then
+		local actualUnit = unit
+		if unit == "focus" then
+			if not LunaUF.focusGUID then
+				frame.unit = "player"
+				frame:Hide()
+				self:SetupFrameModules(frame)
+				return
+			end
+			actualUnit = LunaUF.focusGUID
+		end
+		frame.unit = actualUnit
+
+		if unit ~= "player" and not UnitExists(actualUnit) then
 			frame:Hide()
 		else
 			frame:Show()
 		end
-		if string.find(frame.unitGroup,"(target)") then
+		if string.find(actualUnit,"(target)") then
 			frame:RegisterEvent("PLAYER_TARGET_CHANGED")
 		end
 
 		frame:SetScript("OnDragStart", nil)
 		frame:SetMovable(0)
-		frame.unit = frame.unitGroup
 	end
 	self:SetupFrameModules(frame)
 end

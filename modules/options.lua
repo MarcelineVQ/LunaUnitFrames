@@ -1,6 +1,6 @@
 local L = LunaUF.L
 local defaultFont = LunaUF.defaultFont
-local OptionsPageNames = {L["General"],L["Player"],L["Pet"],L["Pet Target"],L["Target"],L["ToT"],L["ToToT"],L["Party"],L["Party Target"],L["Party Pet"],L["Raid"],L["Clickcasting"],L["Colors"],L["Profiles"],L["Config Mode"]}
+local OptionsPageNames = {L["General"],L["Player"],L["Pet"],L["Pet Target"],L["Target"],L["ToT"],L["ToToT"],L["Party"],L["Party Target"],L["Party Pet"],L["Raid"],L["Focus"],L["Clickcasting"],L["Colors"],L["Profiles"],L["Config Mode"]}
 local shownFrame = 1
 
 local TagsDescs = {}
@@ -709,7 +709,7 @@ local function OnPageSwitch()
 end
 
 function LunaUF:LoadOptions()
-	for i,unit in pairs({[2]="player",[3]="pet",[4]="pettarget",[5]="target",[6]="targettarget",[7]="targettargettarget",[8]="party",[9]="partytarget",[10]="partypet",[11]="raid"}) do
+	for i,unit in pairs({[2]="player",[3]="pet",[4]="pettarget",[5]="target",[6]="targettarget",[7]="targettargettarget",[8]="party",[9]="partytarget",[10]="partypet",[11]="raid",[12]="focus"}) do
 		LunaOptionsFrame.pages[i].enable:SetChecked(LunaUF.db.profile.units[unit].enabled)
 		LunaOptionsFrame.pages[i].heightslider:SetValue(LunaUF.db.profile.units[unit].size.y)
 		LunaOptionsFrame.pages[i].widthslider:SetValue(LunaUF.db.profile.units[unit].size.x)
@@ -905,10 +905,10 @@ function LunaUF:LoadOptions()
 	SetDropDownValue(LunaOptionsFrame.pages[page].growth,LunaUF.db.profile.units.raid.growth)
 	SetDropDownValue(LunaOptionsFrame.pages[page].mode,LunaUF.db.profile.units.raid.mode)
 	ToggleDropDownMenu(1,nil,LunaOptionsFrame.pages[page].mode)
-	page = 12
+	page = 13
 	LunaOptionsFrame.pages[page].mouseDownClicks:SetChecked(LunaUF.db.profile.clickcasting.mouseDownClicks)
 	LunaOptionsFrame.pages[page].Load()
-	page = 13
+	page = 14
 	for i,class in ipairs({"PRIEST","PALADIN","SHAMAN","WARRIOR","ROGUE","MAGE","WARLOCK","DRUID","HUNTER"}) do
 		LunaOptionsFrame.pages[page][class].load(LunaOptionsFrame.pages[page][class],LunaUF.db.profile.classColors[class])
 	end
@@ -924,7 +924,7 @@ function LunaUF:LoadOptions()
 	for name,_ in pairs(LunaUF.db.profile.xpColors) do
 		LunaOptionsFrame.pages[page][name].load(LunaOptionsFrame.pages[page][name],LunaUF.db.profile.xpColors[name])
 	end
-	page = 14
+	page = 15
 	LunaOptionsFrame.pages[page].enableSwitch:SetChecked(LunaDB.ProfileSwitcher)
 end
 
@@ -1078,15 +1078,16 @@ function LunaUF:CreateOptionsMenu()
 	LunaOptionsFrame.Button8 = LunaUF:CreateOptionsButton(9, "LunaPartyTargetButton",		L["Party Target"], LunaOptionsFrame.Button7, "BOTTOMLEFT", 0, -2)
 	LunaOptionsFrame.Button9 = LunaUF:CreateOptionsButton(10, "LunaPartyPetButton",			L["Party Pet"], LunaOptionsFrame.Button8, "BOTTOMLEFT", 0, -2)
 	LunaOptionsFrame.Button10 = LunaUF:CreateOptionsButton(11, "LunaRaidButton",			L["Raid"], LunaOptionsFrame.Button9, "BOTTOMLEFT", 0, -2)
-	LunaOptionsFrame.Button11 = LunaUF:CreateOptionsButton(12, "LunaClickcastingButton",	L["Clickcasting"], LunaOptionsFrame.Button10, "BOTTOMLEFT", 0, -2)
-	LunaOptionsFrame.Button12 = LunaUF:CreateOptionsButton(13, "LunaColorsButton",			L["Colors"], LunaOptionsFrame.Button11, "BOTTOMLEFT", 0, -2)
+	LunaOptionsFrame.Button11 = LunaUF:CreateOptionsButton(12, "LunaFocusButton",			L["Focus"], LunaOptionsFrame.Button10, "BOTTOMLEFT", 0, -2)
+	LunaOptionsFrame.Button12 = LunaUF:CreateOptionsButton(13, "LunaClickcastingButton",	L["Clickcasting"], LunaOptionsFrame.Button11, "BOTTOMLEFT", 0, -2)
+	LunaOptionsFrame.Button13 = LunaUF:CreateOptionsButton(14, "LunaColorsButton",			L["Colors"], LunaOptionsFrame.Button12, "BOTTOMLEFT", 0, -2)
 
-	LunaOptionsFrame.Button13 = CreateFrame("Button", "LunaConfigModeButton", LunaOptionsFrame, "UIPanelButtonTemplate")
-	LunaOptionsFrame.Button13:SetPoint("TOPLEFT", LunaOptionsFrame.Button12, "BOTTOMLEFT", 0, -10)
-	LunaOptionsFrame.Button13:SetHeight(20)
-	LunaOptionsFrame.Button13:SetWidth(140)
-	LunaOptionsFrame.Button13:SetText(L["Config Mode"])
-	LunaOptionsFrame.Button13:SetScript("OnClick", function ()
+	LunaOptionsFrame.Button14 = CreateFrame("Button", "LunaConfigModeButton", LunaOptionsFrame, "UIPanelButtonTemplate")
+	LunaOptionsFrame.Button14:SetPoint("TOPLEFT", LunaOptionsFrame.Button13, "BOTTOMLEFT", 0, -10)
+	LunaOptionsFrame.Button14:SetHeight(20)
+	LunaOptionsFrame.Button14:SetWidth(140)
+	LunaOptionsFrame.Button14:SetText(L["Config Mode"])
+	LunaOptionsFrame.Button14:SetScript("OnClick", function ()
 		if LunaUF.db.profile.locked then
 			LunaUF:SystemMessage(L["Entering config mode."])
 			LunaUF.db.profile.locked = false
@@ -1096,15 +1097,15 @@ function LunaUF:CreateOptionsMenu()
 		end
 		LunaUF:LoadUnits()
 	end	)
-	LunaOptionsFrame.Button13.id = 15
+	LunaOptionsFrame.Button14.id = 16
 
-	LunaOptionsFrame.Button14 = CreateFrame("Button", "LunaProfilesButton", LunaOptionsFrame, "UIPanelButtonTemplate")
-	LunaOptionsFrame.Button14:SetPoint("TOPLEFT", LunaOptionsFrame.Button13, "BOTTOMLEFT", 0, -2)
-	LunaOptionsFrame.Button14:SetHeight(20)
-	LunaOptionsFrame.Button14:SetWidth(140)
-	LunaOptionsFrame.Button14:SetText(L["Profiles"])
-	LunaOptionsFrame.Button14:SetScript("OnClick", OnPageSwitch)
-	LunaOptionsFrame.Button14.id = 14
+	LunaOptionsFrame.Button15 = CreateFrame("Button", "LunaProfilesButton", LunaOptionsFrame, "UIPanelButtonTemplate")
+	LunaOptionsFrame.Button15:SetPoint("TOPLEFT", LunaOptionsFrame.Button14, "BOTTOMLEFT", 0, -2)
+	LunaOptionsFrame.Button15:SetHeight(20)
+	LunaOptionsFrame.Button15:SetWidth(140)
+	LunaOptionsFrame.Button15:SetText(L["Profiles"])
+	LunaOptionsFrame.Button15:SetScript("OnClick", OnPageSwitch)
+	LunaOptionsFrame.Button15.id = 15
 
 	-------- General
 
@@ -1444,7 +1445,7 @@ function LunaUF:CreateOptionsMenu()
 	end)
 	getglobal("LunaEnemyCastBarsText"):SetText(L["Globally disable castbars of others"])
 
-	for i=2, 11 do
+	for i=2, 12 do
 		LunaOptionsFrame.pages[i].id = LunaUF.unitList[i-1]
 
 		LunaOptionsFrame.pages[i].enable = CreateFrame("CheckButton", "Enable"..LunaUF.unitList[i-1], LunaOptionsFrame.pages[i], "UICheckButtonTemplate")
@@ -4286,7 +4287,7 @@ function LunaUF:CreateOptionsMenu()
 
 -------- Clickcasting
 
-	local page = 12
+	local page = 13
 	LunaOptionsFrame.pages[page].mouseDownClicks = CreateFrame("CheckButton", "MouseDownClicks", LunaOptionsFrame.pages[page], "UICheckButtonTemplate")
 	LunaOptionsFrame.pages[page].mouseDownClicks:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 20, -40)
 	LunaOptionsFrame.pages[page].mouseDownClicks:SetHeight(30)
@@ -4378,7 +4379,7 @@ function LunaUF:CreateOptionsMenu()
 
 	-------- Colors
 
-	local page = 13
+	local page = 14
 	LunaOptionsFrame.pages[page].topHeader = LunaOptionsFrame.pages[page]:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	LunaOptionsFrame.pages[page].topHeader:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 20, -40)
 	LunaOptionsFrame.pages[page].topHeader:SetHeight(24)
@@ -4480,7 +4481,7 @@ function LunaUF:CreateOptionsMenu()
 
 	-------- Profiles
 
-	local page = 14
+	local page = 15
 	local nonDeletables = {}
 	nonDeletables["Default"] = true
 	nonDeletables["char"] = true

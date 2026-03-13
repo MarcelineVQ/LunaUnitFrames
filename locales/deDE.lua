@@ -29,6 +29,8 @@ local function deDE() return {
 ["Party Target"] = "Gruppenziel",
 ["Party Pet"] = "Gruppenbegleiter",
 ["Raid"] = "Schlachtzug",
+["Focus"] = "Focus",
+["Focus Unit"] = "Focus Unit",
 ["Clickcasting"] = "Klickwirken",
 ["Colors"] = "Farben",
 ["Config Mode"] = "Einstellungsmodus",

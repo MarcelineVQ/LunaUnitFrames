@@ -22,12 +22,12 @@ StaticPopupDialogs["DELETE_LUNA_PROFILE"] = {
 	button1 = L["OK"],
 	button2 = L["Cancel"],
 	OnAccept = function()
-		local profile = UIDropDownMenu_GetSelectedValue(LunaOptionsFrame.pages[14].ProfileSelect)
-		UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[14].ProfileSelect, "Default")
-		UIDropDownMenu_SetText("Default", LunaOptionsFrame.pages[14].ProfileSelect)
+		local profile = UIDropDownMenu_GetSelectedValue(LunaOptionsFrame.pages[15].ProfileSelect)
+		UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[15].ProfileSelect, "Default")
+		UIDropDownMenu_SetText("Default", LunaOptionsFrame.pages[15].ProfileSelect)
 		LunaUF:SetProfile("Default")
 		LunaDB.profiles[profile] = nil
-		LunaOptionsFrame.pages[14].delete:Disable()
+		LunaOptionsFrame.pages[15].delete:Disable()
 		LunaUF:SystemMessage(LunaUF.L["The profile has been deleted and the default profile has been selected."])
 	end,
 	timeout = 0,
@@ -922,6 +922,94 @@ LunaUF.defaults = {
 				size = {
 					x = 110,
 					y = 19,
+				},
+			},
+			focus = {
+				enabled = false,
+				healthBar = { enabled = true, classGradient = false, colorType = "class", reactionType="npc", size = 6 },
+				powerBar = { enabled = true, size = 4 },
+				emptyBar = { enabled = false, size = 3 },
+				portrait = { enabled = true, type = "3D", side = "right", size = 6 },
+				auras = {
+					enabled = true,
+					buffs = true,
+					debuffs = true,
+					buffsize = 18,
+					debuffsize = 18,
+					enlargedbuffsize = 6,
+					enlargeddebuffsize = 6,
+					buffpos = "BOTTOM",
+					debuffpos = "BOTTOM",
+					bordercolor = false,
+					padding = 2,
+					emphasizeAuras = {
+						buffs = {
+						},
+						debuffs = {
+						},
+					},
+				},
+				highlight = { enabled = true, ontarget = false, ondebuff = true, onmouse = false, alpha = 0.6 },
+				fader = { enabled = false, inactiveAlpha = 0.2, combatAlpha = 1, speedyFade = false },
+				tags = {
+					enabled = true,
+					bartags = {
+						healthBar = {
+							size = 10,
+							leftsize = 100,
+							rightsize = 100,
+							middlesize = 100,
+							["left"] = "[name]",
+							["right"] = "[perhp]%[br][ssmarthealth]",
+						},
+						powerBar = {
+							size = 10,
+							leftsize = 100,
+							rightsize = 100,
+							middlesize = 100,
+							["left"] = "[levelcolor][level][shortclassification] [classcolor][smartclass]",
+							["right"] = "[spp]/[smaxpp]",
+						},
+						castBar = {
+							size = 10,
+						},
+						emptyBar = {
+							size = 10,
+							leftsize = 100,
+							rightsize = 100,
+							middlesize = 100,
+						},
+					},
+				},
+				range = { enabled = false, alpha = 0.5 },
+				combatText = { enabled = false, xoffset = 0, yoffset = 0, size = 2 },
+				incheal = { enabled = true, cap = 0.2 },
+				indicators = {
+					enabled = true,
+					icons = {
+						raidTarget = { enabled = true, anchorPoint = "CENTER", size = 20, x = 0, y = 0 },
+						class = { enabled = true, anchorPoint = "BOTTOMRIGHT", size = 16, x = 0, y = 0 },
+						masterLoot = { enabled = true, anchorPoint = "TOPRIGHT", size = 12, x = -16, y = 0 },
+						leader = { enabled = true, anchorPoint = "TOPRIGHT", size = 14, x = -2, y = 0 },
+						pvp = { enabled = true, anchorPoint = "TOPLEFT", size = 30, x = 5, y = -25 },
+						pvprank = { enabled = true, anchorPoint = "BOTTOMRIGHT", size = 8, x = 0, y = 0 },
+						status = { enabled = true, anchorPoint = "BOTTOMRIGHT", size = 16, x = -20, y = -2 },
+						rezz = { enabled = true, anchorPoint = "RIGHT", size = 20, x = -20, y = 0 },
+					},
+				},
+				borders = {
+					enabled = false,
+					mode = "dispel",
+				},
+				castBar = { enabled = true, size = 3, hide = true },
+				scale = 1,
+				position = {
+					x = 190,
+					y = -100,
+				},
+				size = {
+					x = 240,
+					y = 40,
 				},
 			},
 			raid = {

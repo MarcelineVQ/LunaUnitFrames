@@ -26,6 +26,8 @@ local function ruRU() return {
 	["Party Target"] = "Цели группы",
 	["Party Pet"] = "Питомцы группы",
 	["Raid"] = "Рейд",
+	["Focus"] = "Focus",
+	["Focus Unit"] = "Focus Unit",
 	["Clickcasting"] = "Произнесение по нажатию",
 	["Colors"] = "Цвета",
 	["Config Mode"] = "Режим настроек",

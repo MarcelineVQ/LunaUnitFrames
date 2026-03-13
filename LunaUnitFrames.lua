@@ -9,7 +9,7 @@ LunaUF.HealComm = AceLibrary("HealComm-1.0")
 LunaUF.DruidManaLib = AceLibrary("DruidManaLib-1.0")
 LunaUF.CL = AceLibrary("CastLib-1.0")
 LunaUF.roster = AceLibrary("RosterLib-2.0")
-LunaUF.unitList = {"player", "pet", "pettarget", "target", "targettarget", "targettargettarget", "party", "partytarget", "partypet", "raid"}
+LunaUF.unitList = {"player", "pet", "pettarget", "target", "targettarget", "targettargettarget", "party", "partytarget", "partypet", "raid", "focus"}
 LunaUF.ScanTip = CreateFrame("GameTooltip", "LunaScanTip", nil, "GameTooltipTemplate")
 LunaUF.ScanTip:SetOwner(WorldFrame, "ANCHOR_NONE")
 LunaUF.modules = {}
@@ -308,6 +308,60 @@ end
 
 --------------------------------------------------------------------------------------------
 
+-- Focus ------------------------------------------------------------------------------------
+LunaUF.focusGUID = nil
+
+if SetAutoloot then
+	SLASH_LUFFOCUS1, SLASH_LUFFOCUS2 = "/focus", "/lunafocus"
+	function SlashCmdList.LUFFOCUS(msg)
+		msg = string.gsub(msg or "", "^%s*(.-)%s*$", "%1")
+		local lower = string.lower(msg)
+		if lower == "" then
+			-- No args: focus current target
+			if UnitExists("target") then
+				local _,guid = UnitExists("target")
+				LunaUF.focusGUID = guid
+				LunaUF:SystemMessage("Focus set to " .. (UnitName("target") or "target"))
+			else
+				LunaUF.focusGUID = nil
+				LunaUF:SystemMessage("Focus cleared.")
+			end
+		elseif lower == "clear" then
+			LunaUF.focusGUID = nil
+			LunaUF:SystemMessage("Focus cleared.")
+		else
+			-- Check if it's the player's own name
+			local playerName = UnitName("player")
+			if playerName and string.lower(playerName) == lower then
+				local _,guid = UnitExists("player")
+				LunaUF.focusGUID = guid
+				LunaUF:SystemMessage("Focus set to " .. playerName)
+			else
+				-- Try as player name via RosterLib
+				local unitID = LunaUF.roster:GetUnitIDFromName(msg)
+				if unitID and UnitExists(unitID) then
+					local _,guid = UnitExists(unitID)
+					LunaUF.focusGUID = guid
+					LunaUF:SystemMessage("Focus set to " .. (UnitName(unitID) or msg))
+				else
+					-- Try as unit ID
+					local ok, exists, guid = pcall(UnitExists, lower)
+					if ok and exists then
+						LunaUF.focusGUID = guid
+						LunaUF:SystemMessage("Focus set to " .. (UnitName(lower) or msg))
+					else
+						LunaUF:SystemMessage("Could not find unit or player: " .. msg)
+					end
+				end
+			end
+		end
+		if LunaUF.Units.unitFrames and LunaUF.Units.unitFrames.focus then
+			LunaUF.Units:InitializeFrame("focus")
+		end
+	end
+end
+--------------------------------------------------------------------------------------------
+
 -- Localization Stuff ----------------------------------------------------------------------
 LunaUF.L = AceLibrary("AceLocale-2.2"):new("LunaUnitFrames")
 local L = LunaUF.L
@@ -498,6 +552,11 @@ function LunaUF:OnInitialize()
 		}
 	end
 
+	if SetAutoloot and not self.db.profile.units.focus.initialized then
+		self.db.profile.units.focus.enabled = true
+		self.db.profile.units.focus.initialized = true
+	end
+
 	self:InitBarorder()
 	self:HideBlizzard()
 	self:LoadUnits()
@@ -545,7 +604,7 @@ function LunaUF:ProfileSwitcher()
 			end
 		end
 		local profile = LunaDB.ProfileSwitcherData[GrpMode] or "Default"
-		UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[14].ProfileSelect, profile)
+		UIDropDownMenu_SetSelectedValue(LunaOptionsFrame.pages[15].ProfileSelect, profile)
 		LunaUF:SystemMessage(L["Switched to Profile: "]..profile)
 		LunaUF:SetProfile(profile)
 

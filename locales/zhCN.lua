@@ -26,6 +26,8 @@ local function zhCN() return {
 ["Party Target"] = "小队目标",
 ["Party Pet"] = "小队宠物",
 ["Raid"] = "团队",
+["Focus"] = "Focus",
+["Focus Unit"] = "Focus Unit",
 ["Clickcasting"] = "点击施法",
 ["Colors"] = "颜色",
 ["Config Mode"] = "设置模式",

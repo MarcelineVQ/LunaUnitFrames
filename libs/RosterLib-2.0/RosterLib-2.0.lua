@@ -11,7 +11,7 @@ Dependencies: AceLibrary, AceOO-2.0, AceEvent-2.0
 ]]
 
 local MAJOR_VERSION = "RosterLib-2.0"
-local MINOR_VERSION = "$Revision: 17213 $"
+local MINOR_VERSION = "$Revision: 17214 $"
 
 if not AceLibrary then error(vmajor .. " requires AceLibrary.") end
 if not AceLibrary:IsNewVersion(MAJOR_VERSION, MINOR_VERSION) then return end
@@ -157,7 +157,7 @@ function RosterLib:ScanFullRoster()
 	for unitid in UnitIterator() do
 		local name = self:CreateOrUpdateUnit(unitid)
 		-- we successfully added a unit, so we don't need to remove it next step
-		if name then temp[name] = nil end
+		if name then temp[string.lower(name)] = nil end
 	end
 	-- clear units we had in roster that either left the raid or are unknown for some reason.
 	for name in pairs(temp) do
@@ -245,72 +245,73 @@ function RosterLib:CreateOrUpdateUnit(unitid)
 	-- check for name
 	local name = UnitName(unitid)
 	if name and name ~= UNKNOWNOBJECT and name ~= UKNOWNBEING and not UnitIsCharmed(unitid) then
+		local key = string.lower(name)
 		-- clear stuff
 		unknownUnits[unitid] = nil
 		-- return if a pet attempts to replace a player name
 		-- this doesnt fix the problem with 2 pets overwriting each other FIXME
 		if string.find(unitid,"pet") then
-			if roster[name] and roster[name].class ~= "pet" then
+			if roster[key] and roster[key].class ~= "pet" then
 				return name
 			end
 		end
 		-- save old data if existing
-		if roster[name] then
+		if roster[key] then
 			old          = Compost and Compost:Acquire() or {}
-			old.name     = roster[name].name
-			old.unitid   = roster[name].unitid
-			old.class    = roster[name].class
-			old.rank     = roster[name].rank
-			old.subgroup = roster[name].subgroup
-			old.online   = roster[name].online
+			old.name     = roster[key].name
+			old.unitid   = roster[key].unitid
+			old.class    = roster[key].class
+			old.rank     = roster[key].rank
+			old.subgroup = roster[key].subgroup
+			old.online   = roster[key].online
 		end
 		-- object
-		if not roster[name] then
-			roster[name] = Compost and Compost:Acquire() or {}
+		if not roster[key] then
+			roster[key] = Compost and Compost:Acquire() or {}
 		end
 		-- name
-		roster[name].name = name
+		roster[key].name = name
 		-- unitid
-		roster[name].unitid = unitid
+		roster[key].unitid = unitid
 		-- class
 		if string.find(unitid,"pet") then
-			roster[name].class = "PET"
+			roster[key].class = "PET"
 		else
-			_,roster[name].class = UnitClass(unitid)
+			_,roster[key].class = UnitClass(unitid)
 		end
 		-- subgroup and rank
 		local _,_,num = string.find(unitid, "(%d+)")
 		if GetNumRaidMembers() > 0 and num then
-			_,roster[name].rank,roster[name].subgroup = GetRaidRosterInfo(num)
+			_,roster[key].rank,roster[key].subgroup = GetRaidRosterInfo(num)
 		else
-			roster[name].subgroup = 1
-			roster[name].rank = 0
+			roster[key].subgroup = 1
+			roster[key].rank = 0
 		end
 		-- online/offline status
-		roster[name].online = UnitIsConnected(unitid)
+		roster[key].online = UnitIsConnected(unitid)
 
 		-- compare data
 		if not old
-		or roster[name].name     ~= old.name
-		or roster[name].unitid   ~= old.unitid
-		or roster[name].class    ~= old.class
-		or roster[name].subgroup ~= old.subgroup
-		or roster[name].rank     ~= old.rank
-		or roster[name].online   ~= old.online
+		or roster[key].name     ~= old.name
+		or roster[key].unitid   ~= old.unitid
+		or roster[key].class    ~= old.class
+		or roster[key].subgroup ~= old.subgroup
+		or roster[key].rank     ~= old.rank
+		or roster[key].online   ~= old.online
 		then
-			updatedUnits[name]             = Compost and Compost:Acquire() or {}
-			updatedUnits[name].oldname     = (old and old.name) or nil
-			updatedUnits[name].oldunitid   = (old and old.unitid) or nil
-			updatedUnits[name].oldclass    = (old and old.class) or nil
-			updatedUnits[name].oldsubgroup = (old and old.subgroup) or nil
-			updatedUnits[name].oldrank     = (old and old.rank) or nil
-			updatedUnits[name].oldonline   = (old and old.online) or nil
-			updatedUnits[name].name        = roster[name].name
-			updatedUnits[name].unitid      = roster[name].unitid
-			updatedUnits[name].class       = roster[name].class
-			updatedUnits[name].subgroup    = roster[name].subgroup
-			updatedUnits[name].rank        = roster[name].rank
-			updatedUnits[name].online      = roster[name].online
+			updatedUnits[key]             = Compost and Compost:Acquire() or {}
+			updatedUnits[key].oldname     = (old and old.name) or nil
+			updatedUnits[key].oldunitid   = (old and old.unitid) or nil
+			updatedUnits[key].oldclass    = (old and old.class) or nil
+			updatedUnits[key].oldsubgroup = (old and old.subgroup) or nil
+			updatedUnits[key].oldrank     = (old and old.rank) or nil
+			updatedUnits[key].oldonline   = (old and old.online) or nil
+			updatedUnits[key].name        = roster[key].name
+			updatedUnits[key].unitid      = roster[key].unitid
+			updatedUnits[key].class       = roster[key].class
+			updatedUnits[key].subgroup    = roster[key].subgroup
+			updatedUnits[key].rank        = roster[key].rank
+			updatedUnits[key].online      = roster[key].online
 		end
 		-- compost our table
 		if old and Compost then
@@ -325,14 +326,15 @@ end
 
 
 function RosterLib:RemoveUnit(name)
-	updatedUnits[name]             = Compost and Compost:Acquire() or {}
-	updatedUnits[name].oldname     = roster[name].name
-	updatedUnits[name].oldunitid   = roster[name].unitid
-	updatedUnits[name].oldclass    = roster[name].class
-	updatedUnits[name].oldsubgroup = roster[name].subgroup
-	updatedUnits[name].oldrank     = roster[name].rank
-	if Compost then Compost:Reclaim(roster[name]) end
-	roster[name] = nil
+	local key = string.lower(name)
+	updatedUnits[key]             = Compost and Compost:Acquire() or {}
+	updatedUnits[key].oldname     = roster[key].name
+	updatedUnits[key].oldunitid   = roster[key].unitid
+	updatedUnits[key].oldclass    = roster[key].class
+	updatedUnits[key].oldsubgroup = roster[key].subgroup
+	updatedUnits[key].oldrank     = roster[key].rank
+	if Compost then Compost:Reclaim(roster[key]) end
+	roster[key] = nil
 end
 
 
@@ -341,8 +343,9 @@ end
 ------------------------------------------------
 
 function RosterLib:GetUnitIDFromName(name)
-	if roster[name] then
-		return roster[name].unitid
+	local key = string.lower(name)
+	if roster[key] then
+		return roster[key].unitid
 	else
 		return nil
 	end
@@ -351,17 +354,20 @@ end
 
 function RosterLib:GetUnitIDFromUnit(unit)
 	local name = UnitName(unit)
-	if name and roster[name] then
-		return roster[name].unitid
-	else
-		return nil
+	if name then
+		local key = string.lower(name)
+		if roster[key] then
+			return roster[key].unitid
+		end
 	end
+	return nil
 end
 
 
 function RosterLib:GetUnitObjectFromName(name)
-	if roster[name] then
-		return roster[name]
+	local key = string.lower(name)
+	if roster[key] then
+		return roster[key]
 	else
 		return nil
 	end
@@ -370,11 +376,13 @@ end
 
 function RosterLib:GetUnitObjectFromUnit(unit)
 	local name = UnitName(unit)
-	if roster[name] then
-		return roster[name]
-	else
-		return nil
+	if name then
+		local key = string.lower(name)
+		if roster[key] then
+			return roster[key]
+		end
 	end
+	return nil
 end
 
 

@@ -26,6 +26,8 @@ local function enUS() return {
 ["Party Target"] = "Party Target",
 ["Party Pet"] = "Party Pet",
 ["Raid"] = "Raid",
+["Focus"] = "Focus",
+["Focus Unit"] = "Focus Unit",
 ["Clickcasting"] = "Clickcasting",
 ["Colors"] = "Colors",
 ["Config Mode"] = "Config Mode",
