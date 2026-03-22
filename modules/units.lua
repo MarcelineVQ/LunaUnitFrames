@@ -265,7 +265,7 @@ local function ShowMenu()
 	elseif( this.unitGroup == "raid" ) then
 		HideDropDownMenu(1)
 		local name = UnitName(this.unit)
-		local id = string.sub(this.unit,5)
+		local _, _, id = string.find(this.unit, "(%d+)")
 		local unit = this.unit
 		local menuFrame = FriendsDropDown
 		menuFrame.displayMode = "MENU"
