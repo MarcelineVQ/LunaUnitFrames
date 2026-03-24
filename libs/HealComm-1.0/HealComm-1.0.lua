@@ -1,6 +1,6 @@
 --[[
 Name: HealComm-1.0
-Revision: $Rev: 11732 $
+Revision: $Rev: 11733 $
 Author(s): aviana
 Website: https://github.com/Aviana
 Description: A library to provide communication of heals and resurrections.
@@ -8,7 +8,7 @@ Dependencies: AceLibrary, AceEvent-2.0, RosterLib-2.0, ItemBonusLib-1.0
 ]]
 
 local MAJOR_VERSION = "HealComm-1.0"
-local MINOR_VERSION = "$Revision: 14732 $"
+local MINOR_VERSION = "$Revision: 14733 $"
 
 if not AceLibrary then error(MAJOR_VERSION .. " requires AceLibrary") end
 if not AceLibrary:IsNewVersion(MAJOR_VERSION, MINOR_VERSION) then return end
@@ -196,7 +196,7 @@ L:RegisterTranslations("frFR", function() return {
 	["Libram of Divinity"] = "Libram de divinit\195\169",
 	["Libram of Light"] = "Libram de lumi\195\168re",
 	["Set: Increases the duration of your Rejuvenation spell by 3 sec."] = "Set: Augmente la dur\195\169e de votre sort R\195\169cup\195\169ration de 3 s.",
-	["Set: Increases the duration of your Renew spell by 3 sec."] = "Set: Augmente la dur\195\169e de votre sort R\195\169novation de 3 s.",	
+	["Set: Increases the duration of your Renew spell by 3 sec."] = "Set: Augmente la dur\195\169e de votre sort R\195\169novation de 3 s.",
 	["Totem of Life"] = "Totem de vie",
 	["Totem of Sustaining"] = "Totem de soutien",
 	["^Corpse of (.+)$"] = "^Cadavre |2 (.+)$",
@@ -410,6 +410,8 @@ local function external(self, major, instance)
 		self:RegisterEvent("CHAT_MSG_ADDON")
 		self:RegisterEvent("UNIT_AURA")
 		self:RegisterEvent("UNIT_HEALTH")
+		self:RegisterEvent("CHAT_MSG_SPELL_AURA_GONE_OTHER")
+		self:RegisterEvent("CHAT_MSG_SPELL_AURA_GONE_SELF")
 		self:RegisterEvent("PLAYER_LOGIN")
 		self:TriggerEvent("HealComm_Enabled")
 	end
@@ -1102,7 +1104,7 @@ local function strsplit(pString, pPattern)
 		s, e, cap = strfind(pString, fpat, last_end)
 	end
 	if last_end <= strlen(pString) then
-		cap = strfind(pString, last_end)
+		_,_,cap = strfind(pString, last_end)
 		table.insert(Table, cap)
 	end
 	return Table
@@ -1127,7 +1129,7 @@ HealComm.Buffs = {
 	[L["Essence of Sapphiron"]] = {amount = 130, mod = 0, icon = "Interface\\Icons\\Inv_Trinket_Naxxramas06"};
 	[L["The Eye of the Dead"]] = {amount = 450, mod = 0, icon = "Interface\\Icons\\Inv_Trinket_Naxxramas01"}
 }
-	
+
 HealComm.Debuffs = {
 	[L["Mortal Strike"]] = {amount = 0, mod = 0.5, icon = "Interface\\Icons\\Ability_Warrior_SavageBlow"};
 	[L["Wound Poison"]] = {amount = -135, mod = 0, icon = "Interface\\Icons\\Inv_Misc_Herb_16"};
@@ -1139,7 +1141,7 @@ HealComm.Debuffs = {
 	[L["Blood Fury"]] = {amount = 0, mod = 0.5, icon = "Interface\\Icons\\Ability_Rogue_FeignDeath"};
 	[L["Necrotic Aura"]] = {amount = 0, mod = 1, icon = "Interface\\Icons\\Ability_Creature_Disease_05"}
 }
-	
+
 local function getSetBonus()
 	healcommTip:SetInventoryItem("player", 1)
 	local text = "healcommTipTextLeft"..(healcommTip:NumLines() or 1)
@@ -1155,7 +1157,7 @@ local function getSetBonus()
 		return nil
 	end
 end
-	
+
 function HealComm:GetBuffSpellPower()
 	local Spellpower = 0
 	local healmod = 1
@@ -1222,7 +1224,7 @@ function HealComm:GetUnitSpellPower(unit, spell)
 		end
 	end
 	return targetpower, targetmod
-end			
+end
 
 function HealComm:UNIT_CASTEVENT(caster,target,action,spell_id,cast_time)
 	if caster ~= player_guid then return end
@@ -1361,16 +1363,29 @@ function HealComm:SPELLCAST_START(spell,cast_time)
 		local Bonus = Bonus + buffpower
 		local amount = ((math.floor(self.Spells[self.SpellCastInfo[1]][tonumber(self.SpellCastInfo[2])](Bonus))+targetpower)*buffmod*targetmod)
 		if spell == L["Prayer of Healing"] then
-			local targets = {UnitName("player")}
-			local targetsstring = UnitName("player").."/"
-			for i=1,4 do
-				if CheckInteractDistance("party"..i, 4) then
-					table.insert(targets, i ,UnitName("party"..i))
-					targetsstring = targetsstring..UnitName("party"..i).."/"
+		local group_hits = {}
+		for g_ix,group in pairs(RAID_SUBGROUP_LISTS) do
+			local hit = false
+				for i=1,5 do
+				local raidId = group[i]
+					if raidId then
+						local rid = "raid"..raidId
+						local rid_pet = "raid"..raidId.."pet"
+						group_hits[i] = UnitName(rid)
+						if UnitIsUnit("mouseover",rid) or UnitIsUnit("mouseover",rid_pet) then
+							hit = true
+						end
+					else
+						group_hits[i] = "" -- reset unused temp array slot
+					end
+				end
+				if hit then
+					local targetstring = table.concat(group_hits,"/")
+					self:SendAddonMessage("GrpHeal/"..amount.."/"..cast_time.."/"..targetstring.."/")
+					self:startGrpHeal(UnitName("player"), amount, cast_time, group_hits[1], group_hits[2], group_hits[3], group_hits[4], group_hits[5])
+					break -- end the overall loop
 				end
 			end
-			self:SendAddonMessage("GrpHeal/"..amount.."/"..cast_time.."/"..targetsstring)
-			self:startGrpHeal(UnitName("player"), amount, cast_time, targets[1], targets[2], targets[3], targets[4], targets[5])
 		else
 			self:SendAddonMessage("Heal/"..self.SpellCastInfo[3].."/"..amount.."/"..cast_time.."/")
 			self:startHeal(UnitName("player"), self.SpellCastInfo[3], amount, cast_time)
@@ -1421,6 +1436,18 @@ function HealComm:SPELLCAST_DELAYED()
 	end
 end
 
+function HealComm:ScheduleHotExpiry(target, key, dur)
+	local unit = roster:GetUnitIDFromName(target)
+	if unit then
+		self:ScheduleEvent("HealComm_HotExpiry_"..target..key, function()
+			if self.Hots[target] then
+				self.Hots[target][key] = nil
+			end
+			self:TriggerEvent("HealComm_Hotupdate", roster:GetUnitIDFromName(target), key)
+		end, dur)
+	end
+end
+
 function HealComm:TriggerRegrowthHot()
 	local dur = 21
 	self:SendAddonMessage("Regr/"..self.savetarget.."/"..dur.."/")
@@ -1433,6 +1460,7 @@ function HealComm:TriggerRegrowthHot()
 	self.Hots[self.savetarget]["Regr"].start = GetTime()
 	self.Hots[self.savetarget]["Regr"].dur = dur
 	self:TriggerEvent("HealComm_Hotupdate", roster:GetUnitIDFromName(self.savetarget), "Regrowth")
+	self:ScheduleHotExpiry(self.savetarget, "Regr", dur)
 end
 
 function HealComm:SPELLCAST_STOP()
@@ -1440,7 +1468,11 @@ function HealComm:SPELLCAST_STOP()
 	local targetUnit = roster:GetUnitIDFromName(self.SpellCastInfo[3])
 	if targetUnit then
 		if self.SpellCastInfo[1] == L["Renew"] then
-			local dur = getSetBonus() and 18 or 15
+			local _,_,_,_,talentRank,_ = GetTalentInfo(2,10)
+			local dur = 15
+			if talentRank > 0 then
+				dur = 18
+			end
 			self:SendAddonMessage("Renew/"..self.SpellCastInfo[3].."/"..dur.."/")
 			if not self.Hots[self.SpellCastInfo[3]] then
 				self.Hots[self.SpellCastInfo[3]] = {}
@@ -1451,6 +1483,7 @@ function HealComm:SPELLCAST_STOP()
 			self.Hots[self.SpellCastInfo[3]]["Renew"].start = GetTime()
 			self.Hots[self.SpellCastInfo[3]]["Renew"].dur = dur
 			self:TriggerEvent("HealComm_Hotupdate", targetUnit, "Renew")
+			self:ScheduleHotExpiry(self.SpellCastInfo[3], "Renew", dur)
 		elseif self.SpellCastInfo[1] == L["Rejuvenation"] then
 			local dur = getSetBonus() and 15 or 12
 			self:SendAddonMessage("Reju/"..self.SpellCastInfo[3].."/"..dur.."/")
@@ -1463,6 +1496,7 @@ function HealComm:SPELLCAST_STOP()
 			self.Hots[self.SpellCastInfo[3]]["Reju"].start = GetTime()
 			self.Hots[self.SpellCastInfo[3]]["Reju"].dur = dur
 			self:TriggerEvent("HealComm_Hotupdate", targetUnit, "Rejuvenation")
+			self:ScheduleHotExpiry(self.SpellCastInfo[3], "Reju", dur)
 		elseif self.SpellCastInfo[1] == L["Regrowth"] then
 			self.savetarget = self.SpellCastInfo[3]
 			self:ScheduleEvent("TriggerRegrowthHot", self.TriggerRegrowthHot, 0.3, self)
@@ -1505,6 +1539,7 @@ function HealComm:CHAT_MSG_ADDON()
 			self.Hots[result[2]]["Renew"].start = GetTime()
 			local targetUnit = roster:GetUnitIDFromName(result[2])
 			self:TriggerEvent("HealComm_Hotupdate", targetUnit, "Renew")
+			self:ScheduleHotExpiry(result[2], "Renew", tonumber(result[3]))
 		elseif result[1] == "Reju" then
 			if not self.Hots[result[2]] then
 				self.Hots[result[2]] = {}
@@ -1516,6 +1551,7 @@ function HealComm:CHAT_MSG_ADDON()
 			self.Hots[result[2]]["Reju"].start = GetTime()
 			local targetUnit = roster:GetUnitIDFromName(result[2])
 			self:TriggerEvent("HealComm_Hotupdate", targetUnit, "Rejuvenation")
+			self:ScheduleHotExpiry(result[2], "Reju", tonumber(result[3]))
 		elseif result[1] == "Regr" then
 			if not self.Hots[result[2]] then
 				self.Hots[result[2]] = {}
@@ -1533,30 +1569,52 @@ end
 
 function HealComm:UNIT_AURA()
 	local name = UnitName(arg1)
-	if self.Hots[name] and (self.Hots[name]["Regr"] or self.Hots[name]["Reju"] or self.Hots[name]["Renew"]) then
-		local regr,reju,renew
-		for i=1,32 do
-			if not UnitBuff(arg1,i) then
-				break
-			end
-			healcommTip:ClearLines()
-			healcommTip:SetUnitBuff(arg1,i)
-			regr = regr or healcommTipTextLeft1:GetText() == L["Regrowth"]
-			reju = reju or healcommTipTextLeft1:GetText() == L["Rejuvenation"]
-			renew = renew or healcommTipTextLeft1:GetText() == L["Renew"]
-		end
-		if not regr then
+	if self.Hots[name] then
+		if self.Hots[name]["Regr"] and not self:getRegrTime(arg1) then
 			self.Hots[name]["Regr"] = nil
 			self:TriggerEvent("HealComm_Hotupdate", arg1, "Regrowth")
 		end
-		if not reju then
+		if self.Hots[name]["Reju"] and not self:getRejuTime(arg1) then
 			self.Hots[name]["Reju"] = nil
 			self:TriggerEvent("HealComm_Hotupdate", arg1, "Rejuvenation")
 		end
-		if not renew then
+		if self.Hots[name]["Renew"] and not self:getRenewTime(arg1) then
 			self.Hots[name]["Renew"] = nil
 			self:TriggerEvent("HealComm_Hotupdate", arg1, "Renew")
-		end			
+		end
+	end
+end
+
+-- move all these kind of hot checks to one table later on
+local function findHotFade(msg)
+	if string.find(msg, L["Regrowth"]) then return L["Regrowth"], "Regr"
+	elseif string.find(msg, L["Rejuvenation"]) then return L["Rejuvenation"], "Reju"
+	elseif string.find(msg, L["Renew"]) then return L["Renew"], "Renew"
+	end
+end
+
+function HealComm:CHAT_MSG_SPELL_AURA_GONE_OTHER()
+	local spell, key = findHotFade(arg1)
+	if not key then return end
+	for name, hots in pairs(self.Hots) do
+		if hots[key] and string.find(arg1, name) then
+			local unit = roster:GetUnitIDFromName(name)
+			if unit then
+				hots[key] = nil
+				self:TriggerEvent("HealComm_Hotupdate", unit, spell)
+				return
+			end
+		end
+	end
+end
+
+function HealComm:CHAT_MSG_SPELL_AURA_GONE_SELF()
+	local spell, key = findHotFade(arg1)
+	if not key then return end
+	local name = UnitName("player")
+	if self.Hots[name] and self.Hots[name][key] then
+		self.Hots[name][key] = nil
+		self:TriggerEvent("HealComm_Hotupdate", "player", spell)
 	end
 end
 
@@ -1571,7 +1629,7 @@ function HealComm:getRegrTime(unit)
 		return
 	end
 end
-	
+
 function HealComm:getRejuTime(unit)
 	if unit == UNKNOWNOBJECT or unit == UKNOWNBEING then
 		return
@@ -1653,22 +1711,22 @@ end
 
 function HealComm:CastSpell(spellId, spellbookTabNum)
 	self.hooks.CastSpell(spellId, spellbookTabNum)
-	
+
 	if self.failed or (self.CurrentSpellName and not SpellIsTargeting()) then
 		self.failed = nil
 		return
 	end
-	
+
 	local spellName, rank = GetSpellName(spellId, spellbookTabNum)
 	_,_,rank = string.find(rank,"(%d+)")
-	
+
 	if not (self.Spells[spellName] or Resurrections[spellName] or Hots[spellName]) then return end
 
 	self.CurrentSpellName = spellName
 	self.CurrentSpellRank = rank
 	if not SpellIsTargeting() then
 		if ( UnitIsVisible("target") and UnitIsConnected("target") and UnitCanAssist("player", "target") ) then
-			-- Spell is being cast on the current target.  
+			-- Spell is being cast on the current target.
 			if UnitIsPlayer("target") then
 				self:ProcessSpellCast("target")
 			end
@@ -1680,14 +1738,14 @@ end
 
 function HealComm:CastSpellByName(spellName, onSelf)
 	self.hooks.CastSpellByName(spellName, onSelf)
-	
+
 	if self.failed then
 		self.failed = nil
 		return
 	end
 
 	if (self.CurrentSpellName and not SpellIsTargeting()) or (GetCVar("AutoSelfCast") == "0" and onSelf ~= 1 and not SpellIsTargeting() and not (UnitExists("target") and UnitCanAssist("player", "target"))) then return end
-	
+
 	local _,_,rank = string.find(spellName,"(%d+)")
 	local _, _, spellName = string.find(spellName, "^([^%(]+)")
 	spellName = string.lower(spellName)
@@ -1716,7 +1774,7 @@ function HealComm:CastSpellByName(spellName, onSelf)
 		if not (self.Spells[spellName] or Resurrections[spellName] or Hots[spellName]) then return end
 		self.CurrentSpellName = spellName
 		self.CurrentSpellRank = rank
-		
+
 		if not SpellIsTargeting() then
 			if UnitIsVisible("target") and UnitIsConnected("target") and UnitCanAssist("player", "target") and onSelf ~= 1 then
 				if UnitIsPlayer("target") then
@@ -1749,22 +1807,22 @@ function HealComm:UseAction(slot, checkCursor, onSelf)
 	healcommTip:ClearLines()
 	healcommTip:SetAction(slot)
 	local spellName = healcommTipTextLeft1:GetText()
-	
+
 	self.hooks.UseAction(slot, checkCursor, onSelf)
-	
+
 	-- Test to see if this is a macro
 	if self.failed or GetActionText(slot) or (self.CurrentSpellName and not SpellIsTargeting()) or not (self.Spells[spellName] or Resurrections[spellName] or Hots[spellName]) then
 		self.failed = nil
 		return
 	end
-	
+
 	self.CurrentSpellName = spellName
 	local rank = healcommTipTextRight1:GetText()
 	if rank then
 		_,_,rank = string.find(rank,"(%d+)")
 	end
 	self.CurrentSpellRank = rank or 1
-	
+
 	if not SpellIsTargeting() then
 		if ( UnitIsVisible("target") and UnitIsConnected("target") and UnitCanAssist("player", "target") and onSelf ~= 1) then
 			-- Spell is being cast on the current target
@@ -1784,7 +1842,7 @@ function HealComm:SpellTargetUnit(unit)
 		shallTargetUnit = true
 	end
 	self.hooks.SpellTargetUnit(unit)
-	
+
 	if ( shallTargetUnit and self.CurrentSpellName and not SpellIsTargeting() ) then
 		if UnitIsPlayer(unit) then
 			self:ProcessSpellCast(unit)
