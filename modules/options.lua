@@ -957,6 +957,12 @@ function LunaUF:CreateOptionsMenu()
 	end)
 	LunaOptionsFrame:SetScript("OnHide", function()
 		LunaUF.db.profile.showOptions = false
+		for _,frame in pairs(LunaUF.Units.frameList) do
+			if frame:IsShown() then
+				LunaUF.Units:SetupFrameModules(frame)
+			end
+		end
+		LunaUF.modules.threat:CheckState()
 	end)
 	if not LunaUF.db.profile.showOptions then
 		LunaOptionsFrame:Hide()

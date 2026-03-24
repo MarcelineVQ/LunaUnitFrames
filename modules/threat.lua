@@ -6,7 +6,16 @@ LunaUF:RegisterModule(Threat, "threat", L["Threat"])
 
 local has_superwow = SetAutoloot and true or false
 
+local __find = string.find
+local __sub = string.sub
+local __len = string.len
+local __pairs = pairs
+local __tonumber = tonumber
+local __floor = math.floor
+
 local target_list = {}
+local scratch_players = {}
+local scratch_msg = {}
 
 Threat.threatApi = 'TWTv4=';
 Threat.UDTS = 'TWT_UDTSv4';
@@ -20,18 +29,56 @@ Threat.tankNotify = false
 
 -- taken from pepo's adaptation for bigwigs
 
-function Threat:OnEnable()
-	-- turtle-wow check
-	if string.find(GetBuildInfo(),"^1.18.") then
-		self:RegisterEvent("PLAYER_REGEN_DISABLED")
-		self:RegisterEvent("PLAYER_REGEN_ENABLED")
-		self:RegisterEvent("PLAYER_ENTERING_WORLD")
-		self:RegisterEvent("PLAYER_TARGET_CHANGED")
+local function isTurtleWoW()
+	local _,_,ver = string.find(GetBuildInfo(),"^1%.(%d+)")
+	return ver and tonumber(ver) > 16
+end
+
+local function hasThreatTags()
+	for _, unitConfig in pairs(LunaUF.db.profile.units) do
+		if unitConfig.tags and unitConfig.tags.bartags then
+			for _, barConfig in pairs(unitConfig.tags.bartags) do
+				for _, tagstr in pairs(barConfig) do
+					if type(tagstr) == "string" and string.find(tagstr, "threat") then
+						return true
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
+function Threat:CheckState()
+	if not isTurtleWoW() then return end
+	if hasThreatTags() then
+		-- Piggyback on TWThreat if present — skip our own packet parsing
+		if TWT and TWT.threats then
+			self.threats = TWT.threats
+			self.active = true
+			return
+		end
+		if not self.active then
+			self.active = true
+			self:RegisterEvent("PLAYER_REGEN_DISABLED")
+			self:RegisterEvent("PLAYER_REGEN_ENABLED")
+			self:RegisterEvent("PLAYER_ENTERING_WORLD")
+			self:RegisterEvent("PLAYER_TARGET_CHANGED")
+		end
+	elseif self.active then
+		self.active = false
+		self.threats = {}
+		self:UnregisterAllEvents()
+		self:StopListening()
 	end
 end
 
+function Threat:OnEnable()
+	self:CheckState()
+end
+
 function Threat:OnDisable()
-	-- Threat:StopListening()
+	-- per-frame call, ignore — use CheckState for global toggle
 end
 
 function Threat:PLAYER_ENTERING_WORLD()
@@ -115,44 +162,33 @@ function Threat:Debug(msg)
 end
 
 function Threat:Event()
-	-- print("even")
-	if string.find(arg2, self.threatApi, 1, true) then
-		local threatData = arg2
-		return self:handleThreatPacket(threatData)
+	if __find(arg2, self.threatApi, 1, true) then
+		return self:handleThreatPacket(arg2)
 	end
 end
 
 function Threat:wipe(src)
-	-- notes: table.insert, table.remove will have undefined behavior
-	-- when used on tables emptied this way because Lua removes nil
-	-- entries from tables after an indeterminate time.
-	-- Instead of table.insert(t,v) use t[table.getn(t)+1]=v as table.getn collapses nil entries.
-	-- There are no issues with hash tables, t[k]=v where k is not a number behaves as expected.
-	local mt = getmetatable(src) or {}
-	if mt.__mode == nil or mt.__mode ~= "kv" then
-		mt.__mode = "kv"
-		src = setmetatable(src, mt)
-	end
-	for k in pairs(src) do
+	for k in __pairs(src) do
 		src[k] = nil
 	end
 	return src
 end
 
 function Threat:handleThreatPacket(packet)
-	local playersString = string.sub(packet, string.find(packet, self.threatApi) + string.len(self.threatApi), string.len(packet))
+	local apiPos = __find(packet, self.threatApi, 1, true)
+	local playersString = __sub(packet, apiPos + __len(self.threatApi))
 
-	self.threats = self:wipe(self.threats)
+	self:wipe(self.threats)
 	self.tankName = ''
 
-	local players = self:explode(playersString, ';')
+	local players = self:explode(playersString, ';', scratch_players)
 	for _, tData in players do
-		local msgEx = self:explode(tData, ':')
+		local msgEx = self:explode(tData, ':', scratch_msg)
 		if msgEx[1] and msgEx[2] and msgEx[3] and msgEx[4] and msgEx[5] then
 			local player = msgEx[1]
 			local tank = msgEx[2] == '1'
-			local threat = tonumber(msgEx[3])
-			local perc = tonumber(msgEx[4])
+			local threat = __tonumber(msgEx[3])
+			local perc = __tonumber(msgEx[4])
 			local melee = msgEx[5] == '1'
 
 			self.threats[player] = {
@@ -161,20 +197,10 @@ function Threat:handleThreatPacket(packet)
 				perc = perc,
 				melee = melee,
 			}
-			self:Debug('Player: {' .. player .. '} Threat: ' .. threat .. ' Perc: ' .. perc .. ' Tank: ' .. tostring(tank) .. ' Melee: ' .. tostring(melee))
 
-			-- if tank then
-			-- 	self.tankName = player
-			-- 	if self.tankNotify == true then
-			-- 		self:Debug('Notifying for tank {' .. player .. '}')
-			-- 		-- self:TriggerEvent("BigWigs_ThreatUpdate", player, threat, perc, tank, melee)
-			-- 	end
-			-- end
-
-			-- if self.playerNamesToNotify[player] then
-			-- 	self:Debug('Notifying for {' .. player .. '}')
-			-- 	-- self:TriggerEvent("BigWigs_ThreatUpdate", player, threat, perc, tank, melee)
-			-- end
+			if tank then
+				self.tankName = player
+			end
 		end
 	end
 end
@@ -184,16 +210,10 @@ end
 -- tank = boolean,
 -- perc = threatPercentage,
 -- melee = boolean
+local emptyThreat = { threat = false, tank = false, perc = false, melee = false }
+
 function Threat:GetPlayerInfo(playerName)
-	if not self.threats[playerName] then
-		return {
-			threat = false,
-			tank = false,
-			perc = false,
-			melee = false,
-		}
-	end
-	return self.threats[playerName]
+	return self.threats[playerName] or emptyThreat
 end
 
 function Threat:IsInteresting()
@@ -212,53 +232,34 @@ function Threat:IsInteresting()
 		return true
 end
 
+local function NextThreat(threats, threat)
+	local nextLowest = nil
+	for _, data in threats do
+		if data.threat < threat then
+			if not nextLowest or data.threat > nextLowest.threat then
+				nextLowest = data
+			end
+		end
+	end
+	return nextLowest
+end
+
 function Threat:GetThreat(unit,perc,pull,neg)
 	local name = UnitName(unit)
 	if not self:IsInteresting() then return false end
-
-	local function NextThreat(threat)
-		local nextLowestThreater = nil
-
-		for n, data in self.threats do
-			if data.threat < threat then
-				if not nextLowestThreater or data.threat > nextLowestThreater.threat then
-					nextLowestThreater = data
-				end
-			end
-		end
-
-		return nextLowestThreater
-	end
-
-	local function GetHighestThreat(tank)
-		local highestThreat = nil
-		local highestEntry = nil
-
-		for n, data in pairs(self.threats) do
-			if not highestEntry or (data.threat >= highestEntry.threat and data.threat ~= tank.threat) then
-				print(n .. " ".. data.threat)
-				-- highestThreat = data.threat
-				highestEntry = data
-			end
-		end
-
-		return highestEntry
-	end
 
 	local data = self.threats[name]
 	if data then
 		if perc then
 			if neg and data.perc >= 100 then
-				local next_threater = NextThreat(data.threat) or data
-				-- local next_threater =	GetHighestThreat(data.tank and data)
+				local next_threater = NextThreat(self.threats, data.threat) or data
 				return data.perc / next_threater.perc * 100
 			end
 			return data.perc
 		end
 		if pull then
 			if data.tank and neg then
-				local next_threater = NextThreat(data.threat) or data
-				-- local next_threater = GetHighestThreat(data)
+				local next_threater = NextThreat(self.threats, data.threat) or data
 				return -(next_threater.threat * ((100 / next_threater.perc) - 1))
 			else
 				return data.threat * ((100 / data.perc) - 1)
@@ -275,15 +276,25 @@ function Threat:GetThreat(unit,perc,pull,neg)
 	return 0 -- meets IsInteresting criteria but no value yet
 end
 
-function Threat:explode(str, delimiter)
-	local result = {}
+function Threat:explode(str, delimiter, reuse)
+	local result = reuse or {}
+	local n = 0
 	local from = 1
-	local delim_from, delim_to = string.find(str, delimiter, from, 1, true)
+	local delim_from, delim_to = __find(str, delimiter, from, true)
 	while delim_from do
-		table.insert(result, string.sub(str, from, delim_from - 1))
+		n = n + 1
+		result[n] = __sub(str, from, delim_from - 1)
 		from = delim_to + 1
-		delim_from, delim_to = string.find(str, delimiter, from, true)
+		delim_from, delim_to = __find(str, delimiter, from, true)
 	end
-	table.insert(result, string.sub(str, from))
+	n = n + 1
+	result[n] = __sub(str, from)
+	if reuse then
+		local old = n + 1
+		while result[old] do
+			result[old] = nil
+			old = old + 1
+		end
+	end
 	return result
 end
