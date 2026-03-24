@@ -60,6 +60,19 @@ function Threat:CheckState()
 		end
 		if not self.active then
 			self.active = true
+			if not updateFrame then
+				updateFrame = CreateFrame("Frame")
+				updateFrame.elapsed = 0
+				updateFrame:SetScript("OnUpdate", function()
+					this.elapsed = this.elapsed + arg1
+					if this.elapsed < 0.5 then return end
+					this.elapsed = 0
+					if Threat.listening and UnitExists("target") and UnitAffectingCombat("target") then
+						local channel = GetNumRaidMembers() > 0 and "RAID" or "PARTY"
+						SendAddonMessage(Threat.UDTS, "limit=1", channel)
+					end
+				end)
+			end
 			self:RegisterEvent("PLAYER_REGEN_DISABLED")
 			self:RegisterEvent("PLAYER_REGEN_ENABLED")
 			self:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -68,6 +81,7 @@ function Threat:CheckState()
 	elseif self.active then
 		self.active = false
 		self.threats = {}
+		if updateFrame then updateFrame:Hide() end
 		self:UnregisterAllEvents()
 		self:StopListening()
 	end
@@ -111,6 +125,8 @@ function Threat:StartListening()
 	if not self:IsListening() then
 		self:Debug("threat listener started")
 		self:RegisterEvent("CHAT_MSG_ADDON", "Event")
+		self.listening = true
+		if updateFrame then updateFrame:Show() end
 	end
 end
 
@@ -120,6 +136,8 @@ function Threat:StopListening()
 		self:UnregisterEvent("CHAT_MSG_ADDON")
 		self:wipe(self.threats)
 	end
+	self.listening = false
+	if updateFrame then updateFrame:Hide() end
 end
 
 function Threat:EnableEventsForTank()
@@ -161,9 +179,11 @@ function Threat:Debug(msg)
 	end
 end
 
+local updateFrame
+
 function Threat:Event()
 	if __find(arg2, self.threatApi, 1, true) then
-		return self:handleThreatPacket(arg2)
+		self:handleThreatPacket(arg2)
 	end
 end
 
