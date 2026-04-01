@@ -10,9 +10,8 @@
 ## Author-zhCN: 原作者Avi，中文协作者zerosnake0
 ## Author-deDE: Avi
 ##
-## Dependencies: Blizzard_RaidUI
 ## SavedVariables: LunaDB, LunaBuffDB
-## OptionalDeps: Ace2, RosterLib, BanzaiLib, HealComm, DruidManaLib, MobHealth, Clique, FuBar, FuBarPlugin-2.0, Babble-2.2, CompostLib, SurfaceLib, Surfaces, DewdropLib, TabletLib, Opium
+## OptionalDeps: Blizzard_RaidUI, Ace2, RosterLib, BanzaiLib, HealComm, DruidManaLib, MobHealth, Clique, FuBar, FuBarPlugin-2.0, Babble-2.2, CompostLib, SurfaceLib, Surfaces, DewdropLib, TabletLib, Opium
 ## X-Category: UnitFrame
 
 
