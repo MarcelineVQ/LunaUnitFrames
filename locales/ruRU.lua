@@ -256,6 +256,7 @@ local function ruRU() return {
 	["Debuffcolor"] = "Цвет дебаффов",
 	["Feigned"] = "Притворный",
 	["Feign Death"] = "Притвориться мертвым",
+	["Spirit of Redemption"] = "Дух воздаяния",
 	["Dead"] = "Мертв",
 	["Size"] = "Размер",
 	["Big Size"] = "Большой размер",

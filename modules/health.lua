@@ -4,18 +4,48 @@ LunaUF:RegisterModule(Health, "healthBar", LunaUF.L["Health bar"], true)
 
 -- local tooltip = LunaUF.ScanTip
 
-local function feigncheck(unit)
+-- Fallback buff scan for death state detection when auras module is disabled.
+-- Only called for dead hunters (feign death) and full-hp priests (spirit of redemption).
+local function deathbuffcheck(frame)
+	local unit = frame.unit
 	local _,class = UnitClass(unit)
-	if class ~= "HUNTER" then return end
+	local searchFeign = class == "HUNTER"
+	local searchSpirit = class == "PRIEST"
+	if not searchFeign and not searchSpirit then return end
 	for i=1,32 do
 		if not UnitBuff(unit,i) then
 			return
 		end
 		LunaUF.ScanTip:ClearLines()
 		LunaUF.ScanTip:SetUnitBuff(unit,i)
-		if LunaScanTipTextLeft1:GetText() == LunaUF.L["Feign Death"] then
-			return true
+		local name = LunaScanTipTextLeft1:GetText()
+		if searchFeign and name == LunaUF.L["Feign Death"] then
+			frame.hasFeignDeath = true
+			return
+		elseif searchSpirit and name == LunaUF.L["Spirit of Redemption"] then
+			frame.hasSpiritOfRedemption = true
+			return
 		end
+	end
+end
+
+-- Update frame death-state flags, using aura flags if available or scanning as fallback.
+local function updateDeathState(frame)
+	local aurasEnabled = LunaUF.db.profile.units[frame.unitGroup].auras
+		and LunaUF.db.profile.units[frame.unitGroup].auras.enabled
+	if not aurasEnabled then
+		local _,class = UnitClass(frame.unit)
+		-- Only scan when the health state actually suggests these edge cases
+		if (class == "HUNTER" and frame.isDead) or (class == "PRIEST" and not frame.isDead and UnitHealth(frame.unit) == UnitHealthMax(frame.unit)) then
+			frame.hasFeignDeath = nil
+			frame.hasSpiritOfRedemption = nil
+			deathbuffcheck(frame)
+		end
+	end
+	if frame.hasFeignDeath then
+		frame.isDead = false
+	elseif frame.hasSpiritOfRedemption then
+		frame.isDead = true
 	end
 end
 
@@ -92,8 +122,10 @@ local function updateTimer()
 	-- Update offline/dead state
 	frame.isOffline = not UnitIsConnected(frame.unit)
 	frame.isDead = UnitIsDeadOrGhost(frame.unit) or (UnitHealth(frame.unit) == 1 and not UnitIsVisible(frame.unit))
+	updateDeathState(frame)
 
-	if frame.isDead and feigncheck(frame.unit) then return end
+	-- Feigning hunters report 0 hp from the API; preserve their last real health
+	if frame.hasFeignDeath then return end
 
 	bar.currentHealth = currentHealth
 
@@ -248,18 +280,16 @@ end
 function Health:Update(frame)
 	frame.isOffline = not UnitIsConnected(frame.unit)
 	frame.isDead = UnitIsDeadOrGhost(frame.unit) or (UnitHealth(frame.unit) == 1 and not UnitIsVisible(frame.unit))
-	if not frame.isDead then
-		frame.currentHealth = UnitHealth(frame.unit)
-	end
+	updateDeathState(frame)
 	frame.healthBar:SetMinMaxValues(0, UnitHealthMax(frame.unit))
 
-	if frame.isOffline or frame.isDead then
-		if feigncheck(frame.unit) then
-			frame.healthBar:SetValue(frame.currentHealth)
-		else
-			frame.healthBar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
-		end
+	-- Feigning hunters report 0 hp from the API; preserve their last real health
+	if frame.hasFeignDeath then
+		frame.healthBar:SetValue(frame.currentHealth or UnitHealthMax(frame.unit))
+	elseif frame.isOffline or frame.isDead then
+		frame.healthBar:SetValue((frame.isOffline and UnitHealthMax(frame.unit)) or (frame.isDead and 0))
 	else
+		frame.currentHealth = UnitHealth(frame.unit)
 		frame.healthBar:SetValue(UnitHealth(frame.unit))
 	end
 

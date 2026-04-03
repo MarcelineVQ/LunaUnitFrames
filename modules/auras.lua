@@ -323,6 +323,8 @@ function Auras:UpdateFrames(frame)
 	local config = LunaUF.db.profile.units[frame.unitGroup].auras
 	local buffIndex, untilCancelled, dtype, texture, stacks, timeleft, buffName
 	local hasMainHandEnchant, mainHandExpiration, mainHandCharges, hasOffHandEnchant, offHandExpiration, offHandCharges = GetWeaponEnchantInfo()
+	frame.hasFeignDeath = nil
+	frame.hasSpiritOfRedemption = nil
 	for i,button in ipairs(frame.auras.buffbuttons.buttons) do
 		if i < 33 then
 			if frame.unitGroup == "player" then
@@ -341,6 +343,11 @@ function Auras:UpdateFrames(frame)
 				dtype = LunaAuraScanTipTextRight1:IsVisible() and LunaAuraScanTipTextRight1:GetText()
 				dtype = dtype and revTranslation[dtype]
 				buffName = LunaAuraScanTipTextLeft1:GetText()
+			end
+			if buffName == L["Feign Death"] then
+				frame.hasFeignDeath = true
+			elseif buffName == L["Spirit of Redemption"] then
+				frame.hasSpiritOfRedemption = true
 			end
 			if buffName and config.emphasizeAuras.buffs[buffName] then
 				button.large = true

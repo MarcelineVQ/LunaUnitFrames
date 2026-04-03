@@ -1365,10 +1365,12 @@ function HealComm:SPELLCAST_START(spell,cast_time)
 		local amount = ((math.floor(self.Spells[self.SpellCastInfo[1]][tonumber(self.SpellCastInfo[2])](Bonus))+targetpower)*buffmod*targetmod)
 		if spell == L["Prayer of Healing"] then
 		local group_hits = {}
-		for g_ix,group in pairs(RAID_SUBGROUP_LISTS) do
-			local hit = false
+		local hit = false
+		if GetNumRaidMembers() > 0 then
+			for g_ix,group in pairs(RAID_SUBGROUP_LISTS) do
+				hit = false
 				for i=1,5 do
-				local raidId = group[i]
+					local raidId = group[i]
 					if raidId then
 						local rid = "raid"..raidId
 						local rid_pet = "raid"..raidId.."pet"
@@ -1377,16 +1379,28 @@ function HealComm:SPELLCAST_START(spell,cast_time)
 							hit = true
 						end
 					else
-						group_hits[i] = "" -- reset unused temp array slot
+						group_hits[i] = ""
 					end
 				end
-				if hit then
-					local targetstring = table.concat(group_hits,"/")
-					self:SendAddonMessage("GrpHeal/"..amount.."/"..cast_time.."/"..targetstring.."/")
-					self:startGrpHeal(UnitName("player"), amount, cast_time, group_hits[1], group_hits[2], group_hits[3], group_hits[4], group_hits[5])
-					break -- end the overall loop
+				if hit then break end
+			end
+		else
+			group_hits[1] = UnitName("player")
+			if UnitIsUnit("mouseover","player") then hit = true end
+			for i=1,4 do
+				if UnitExists("party"..i) then
+					group_hits[i+1] = UnitName("party"..i)
+					if UnitIsUnit("mouseover","party"..i) then hit = true end
+				else
+					group_hits[i+1] = ""
 				end
 			end
+		end
+		if hit then
+			local targetstring = table.concat(group_hits,"/")
+			self:SendAddonMessage("GrpHeal/"..amount.."/"..cast_time.."/"..targetstring.."/")
+			self:startGrpHeal(UnitName("player"), amount, cast_time, group_hits[1], group_hits[2], group_hits[3], group_hits[4], group_hits[5])
+		end
 		else
 			self:SendAddonMessage("Heal/"..self.SpellCastInfo[3].."/"..amount.."/"..cast_time.."/")
 			self:startHeal(UnitName("player"), self.SpellCastInfo[3], amount, cast_time)

@@ -45,17 +45,19 @@ local function Hex(r, g, b)
 	return string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
 end
 
+-- Check death-state flags set by the auras/health modules on the unit's frame.
 local function feigncheck(unit)
-	local _,class = UnitClass(unit)
-	if class ~= "HUNTER" then return end
-	for i=1,32 do
-		if not UnitBuff(unit,i) then
-			return
+	for _,frame in pairs(LunaUF.Units.frameList) do
+		if frame.unit == unit then
+			return frame.hasFeignDeath
 		end
-		tooltip:ClearLines()
-		tooltip:SetUnitBuff(unit,i)
-		if LunaScanTipTextLeft1:GetText() == L["Feign Death"] then
-			return true
+	end
+end
+
+local function spiritcheck(unit)
+	for _,frame in pairs(LunaUF.Units.frameList) do
+		if frame.unit == unit then
+			return frame.hasSpiritOfRedemption
 		end
 	end
 end
@@ -249,6 +251,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								end
 								return hp.."/"..maxhp
 							end;
@@ -260,6 +264,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								end
 								if hp > 10000 then
 									hp = math.floor(hp/1000).."K"
@@ -304,6 +310,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								end
 								if hp > 10000 then
 									hp = math.floor(hp/1000).."K"
@@ -494,6 +502,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								elseif UnitIsGhost(unit) then
 									return L["Ghost"]
 								elseif not UnitIsConnected(unit) then
@@ -627,6 +637,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								end
 								local heal = HealComm:getHeal(UnitName(unit))
 								local result = hp-maxhp+heal
@@ -746,6 +758,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								end
 								local heal = HealComm:getHeal(UnitName(unit))
 								if UnitIsEnemy("player", unit) then
@@ -785,6 +799,8 @@ local defaultTags = {
 									else
 										return L["Dead"]
 									end
+								elseif spiritcheck(unit) then
+									return L["Dead"]
 								end
 								local heal = HealComm:getHeal(UnitName(unit))
 								if UnitIsEnemy("player", unit) then

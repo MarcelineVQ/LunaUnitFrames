@@ -256,6 +256,7 @@ local function frFR() return {
 ["Debuffcolor"] = "Debuffcolor",
 ["Feigned"] = "Feigned",
 ["Feign Death"] = "Feign Death",
+["Spirit of Redemption"] = "Esprit de r\195\169demption",
 ["Dead"] = "Dead",
 ["Size"] = "Size",
 ["Big Size"] = "Big Size",

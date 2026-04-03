@@ -259,6 +259,7 @@ local function deDE() return {
 ["Debuffcolor"] = "Schw\195\164chezauberfarbe",
 ["Feigned"] = "totgestellt",
 ["Feign Death"] = "Totstellen",
+["Spirit of Redemption"] = "Geist der Erl\195\182sung",
 ["Dead"] = "Tot",
 ["Size"] = "Gr\195\182\195\159e",
 ["Big Size"] = "Gro\195\159e Gr\195\182\195\159e",

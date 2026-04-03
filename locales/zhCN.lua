@@ -256,6 +256,7 @@ local function zhCN() return {
 ["Debuffcolor"] = "减益颜色",
 ["Feigned"] = "假死",
 ["Feign Death"] = "假死",
+["Spirit of Redemption"] = "救赎之魂",
 ["Dead"] = "死亡",
 ["Size"] = "大小",
 ["Big Size"] = "大尺寸",

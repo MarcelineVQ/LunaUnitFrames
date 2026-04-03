@@ -257,6 +257,7 @@ local function enUS() return {
 ["Debuffcolor"] = "Debuffcolor",
 ["Feigned"] = "Feigned",
 ["Feign Death"] = "Feign Death",
+["Spirit of Redemption"] = "Spirit of Redemption",
 ["Dead"] = "Dead",
 ["Size"] = "Size",
 ["Big Size"] = "Big Size",
