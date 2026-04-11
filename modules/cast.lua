@@ -18,6 +18,7 @@ local DisabledZones = {
 	[L["Halls of Strife"]] = true,
 }
 
+-- these are EXTREMELY expensive patterns if a lot of messages are occuring
 local CHAT_PATTERNS = {
 	["gains"] = {
 				[1] = string.gsub(string.gsub(AURAADDEDOTHERHELPFUL,"%d%$",""), "%%s", "(.+)"),
@@ -355,7 +356,9 @@ local Interrupts = {
 	[BS["Earth Shock"]] = true;
 }
 
-Cast:RegisterEvent("MINIMAP_ZONE_CHANGED")
+if not has_superwow then
+	Cast:RegisterEvent("MINIMAP_ZONE_CHANGED")
+end
 
 local function TriggerCast(mob, spell, castime)
 	if CasterDB[mob] then
@@ -460,12 +463,12 @@ Cast.CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS = Cast.CHAT_MSG_SPELL_PERIODIC_HOSTILEP
 
 function Cast:UNIT_CASTEVENT(caster,target,action,spell_id,cast_time)
 	-- local name = UnitName(caster)
-	if UnitName(caster) == UnitName("player") or action == "MAINHAND" or action == "OFFHAND" then return end
+	if UnitIsUnit("player",caster) or action == "MAINHAND" or action == "OFFHAND" then return end
 	ProcessData(caster, SpellInfo(spell_id), action, cast_time / 1000)
 end
 
 function Cast:CHAT_MSG_SPELL_HOSTILEPLAYER_BUFF(arg1)
-	if LunaUF.db.profile.enemyCastbars or has_superwow then return end
+	if LunaUF.db.profile.enemyCastbars then return end
 	-- casts/performs
 	for _, pattern in pairs(CHAT_PATTERNS["casts"]) do
 		for mob, spell in string.gfind(arg1, pattern) do
@@ -946,23 +949,24 @@ function Cast:MINIMAP_ZONE_CHANGED()
 	end
 end
 
-Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_CREATURE_DAMAGE")
-Cast:RegisterEvent("CHAT_MSG_SPELL_FRIENDLYPLAYER_BUFF")
-Cast:RegisterEvent("CHAT_MSG_SPELL_HOSTILEPLAYER_BUFF")
-Cast:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_BUFFS")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_FRIENDLYPLAYER_BUFFS")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_DAMAGE")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_FRIENDLYPLAYER_DAMAGE")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PARTY_BUFF")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_PARTY_DAMAGE")
-Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS")
-Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_SELF_BUFF")
-Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_PARTY_BUFF")
-Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_CREATURE_BUFF")
 if has_superwow then
 	Cast:RegisterEvent("UNIT_CASTEVENT")
+else
+	Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_CREATURE_DAMAGE")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_FRIENDLYPLAYER_BUFF")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_HOSTILEPLAYER_BUFF")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_BUFFS")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_FRIENDLYPLAYER_BUFFS")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_DAMAGE")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_FRIENDLYPLAYER_DAMAGE")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PARTY_BUFF")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_PARTY_DAMAGE")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_SELF_BUFF")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_PARTY_BUFF")
+	Cast:RegisterEvent("CHAT_MSG_SPELL_CREATURE_VS_CREATURE_BUFF")
+	Cast:MINIMAP_ZONE_CHANGED()
 end
-Cast:MINIMAP_ZONE_CHANGED()
 Cast:SetScript("OnEvent", function() this[event](this,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) end)
