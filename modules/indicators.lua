@@ -195,18 +195,12 @@ local function UpdateRezz(enabled, indicator, unit)
 end
 
 local function GetLootMaster()
-	local lootmethod, pid, rid = GetLootMethod()
-	if lootmethod == "master" and (UnitInRaid("player") or GetNumPartyMembers() > 0) then
-		if pid then
-			return GetUnitName(pid == 0 and "player" or "party"..pid)
-		elseif rid then
-			return GetUnitName("raid"..rid)
-		else
-			return lootmaster
-		end
-	elseif lootmethod == "group" and pid then
-		return GetUnitName((pid == 0 and "player") or "party"..pid)
-	end
+  local lootMethod, partyMLID, raidMLIndex = GetLootMethod()
+  if lootMethod ~= "master" then return nil end
+  if raidMLIndex then return GetRaidRosterInfo(raidMLIndex) end
+  if partyMLID and partyMLID == 0 then return UnitName("player") end
+  if partyMLID then return UnitName("party" .. partyMLID) end
+  return nil
 end
 
 local function UpdateMasterLoot(enabled, indicator, unit)
