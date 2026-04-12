@@ -100,6 +100,7 @@ local function enUS() return {
 ["friendly"] = "friendly",
 ["neutral"] = "neutral",
 ["offline"] = "offline",
+["charmed"] = "charmed",
 ["MANA"] = "Mana",
 ["RAGE"] = "Rage",
 ["FOCUS"] = "Focus",

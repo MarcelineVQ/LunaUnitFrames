@@ -34,11 +34,11 @@ local function updateDeathState(frame)
 	local aurasEnabled = LunaUF.db.profile.units[frame.unitGroup].auras
 		and LunaUF.db.profile.units[frame.unitGroup].auras.enabled
 	if not aurasEnabled then
+		frame.hasFeignDeath = nil
+		frame.hasSpiritOfRedemption = nil
 		local _,class = UnitClass(frame.unit)
-		-- Only scan when the health state actually suggests these edge cases
-		if (class == "HUNTER" and frame.isDead) or (class == "PRIEST" and not frame.isDead and UnitHealth(frame.unit) == UnitHealthMax(frame.unit)) then
-			frame.hasFeignDeath = nil
-			frame.hasSpiritOfRedemption = nil
+		if (class == "HUNTER" and frame.isDead)
+		or (class == "PRIEST" and UnitHealth(frame.unit) == UnitHealthMax(frame.unit)) then
 			deathbuffcheck(frame)
 		end
 	end
@@ -227,6 +227,9 @@ function Health:UpdateColor(frame)
 	if( not UnitIsConnected(unit) ) then
 		frame.healthBar.wasOffline = true
 		self:SetBarColor(frame.healthBar, LunaUF.db.profile.units[frame.unitGroup].healthBar.invert, LunaUF.db.profile.healthColors.offline)
+		return
+	elseif( UnitIsCharmed(unit) and UnitIsPlayer(unit) ) then
+		self:SetBarColor(frame.healthBar, LunaUF.db.profile.units[frame.unitGroup].healthBar.invert, LunaUF.db.profile.healthColors.charmed)
 		return
 	elseif( LunaUF.db.profile.units[frame.unitGroup].healthBar.colorAggro and UnitThreatSituation(frame.unit) == 3 ) then
 		self:SetBarColor(frame.healthBar, LunaUF.db.profile.units[frame.unitGroup].healthBar.invert, LunaUF.db.profile.healthColors.hostile)
