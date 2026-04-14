@@ -1116,16 +1116,31 @@ LunaUF.defaults = {
 					invertfirstbuff = false,
 					invertsecondbuff = false,
 					invertthirdbuff = false,
-					buffs = {
+					invertfourthbuff = false,
+					invertfifthbuff = false,
+					invertsixthbuff = false,
+					invertseventhbuff = false,
+					inverteightbuff = false,
+					buffs = { -- defaults for the extra 3 > 8 buffname slot
 						names = {
 							[1] = "",
 							[2] = "",
 							[3] = "",
+							[4] = "",
+							[5] = "",
+							[6] = "",
+							[7] = "",
+							[8] = "",
 						},
 						colors = {
 							[1] = {r=1,g=0,b=0},
 							[2] = {r=0,g=1,b=0},
 							[3] = {r=0,g=0,b=1},
+							[4] = {r=0,g=0,b=1},
+							[5] = {r=0,g=0,b=1},
+							[6] = {r=0,g=0,b=1},
+							[7] = {r=0,g=0,b=1},
+							[8] = {r=0,g=0,b=1},
 						},
 					},
 					debuffs = {
