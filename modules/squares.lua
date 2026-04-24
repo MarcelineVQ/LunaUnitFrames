@@ -44,7 +44,7 @@ function Squares:OnEnable(frame)
 		frame.squares.trackdebuffs = {}
 		frame.squares.centericons = {}
 
-		for i = 1, 3 do
+		for i = 1, 6 do
 			frame.squares.buffs[i] = CreateFrame("Frame", nil, frame.squares)
 			frame.squares.buffs[i]:SetBackdrop(LunaUF.constants.backdrop)
 			frame.squares.buffs[i]:SetBackdropColor(0,0,0)
@@ -72,9 +72,12 @@ function Squares:OnEnable(frame)
 			frame.squares.centericons[i].cd:SetWidth(36)
 		end
 
-		frame.squares.buffs[1]:SetPoint("TOPRIGHT", frame.squares, "TOPRIGHT")
+		frame.squares.buffs[1]:SetPoint("TOPRIGHT", frame.squares, "TOPRIGHT",-5,0)
 		frame.squares.buffs[2]:SetPoint("RIGHT", frame.squares.buffs[1], "LEFT")
 		frame.squares.buffs[3]:SetPoint("TOP", frame.squares.buffs[1], "BOTTOM")
+		frame.squares.buffs[4]:SetPoint("TOP", frame.squares.buffs[2], "BOTTOM") -- adding 3 more buff to display (using the 8 buffname slot from raid options)
+		frame.squares.buffs[5]:SetPoint("RIGHT", frame.squares.buffs[2], "LEFT")
+		frame.squares.buffs[6]:SetPoint("RIGHT", frame.squares.buffs[4], "LEFT")
 
 		frame.squares.debuffs[1]:SetPoint("TOPLEFT", frame.squares, "TOPLEFT")
 		frame.squares.debuffs[2]:SetPoint("LEFT", frame.squares.debuffs[1], "RIGHT")
@@ -208,6 +211,11 @@ function Squares:UpdateAuras(frame)
 			if k == 1 and LunaUF.db.profile.units.raid.squares.invertfirstbuff then invert = true end
 			if k == 2 and LunaUF.db.profile.units.raid.squares.invertsecondbuff then invert = true end
 			if k == 3 and LunaUF.db.profile.units.raid.squares.invertthirdbuff then invert = true end
+			if k == 4 and LunaUF.db.profile.units.raid.squares.invertfourthbuff then invert = true end
+			if k == 5 and LunaUF.db.profile.units.raid.squares.invertfifthbuff then invert = true end
+			if k == 6 and LunaUF.db.profile.units.raid.squares.invertsixthbuff then invert = true end
+			if k == 7 and LunaUF.db.profile.units.raid.squares.invertseventhbuff then invert = true end
+			if k == 8 and LunaUF.db.profile.units.raid.squares.inverteightbuff then invert = true end
 
 			if invert then
 				if not buffs[k] then
@@ -280,7 +288,7 @@ end
 function Squares:FullUpdate(frame)
 	if not frame.squares then return end
 	local config = LunaUF.db.profile.units.raid.squares
-	for i=1, 3 do
+	for i=1, 6 do
 		frame.squares.buffs[i]:SetHeight(config.outersize)
 		frame.squares.buffs[i]:SetWidth(config.outersize)
 
